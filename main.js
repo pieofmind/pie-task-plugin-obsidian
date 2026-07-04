@@ -772,6 +772,15 @@ class PieLiveView extends obsidian.ItemView {
     const state = chips.createEl('span', { cls: 'ev-state' }); state.innerHTML = SI[rs] || SI.dot; state.appendText(RS.lab);
     if (t.over) { const ov = chips.createEl('span', { cls: 'ev-over' }); ov.innerHTML = SI.over; ov.appendText('Quá hạn'); }
     if (t.check.length) { const cc = chips.createEl('span', { cls: 'ev-check', text: '✓ ' + t.check.filter(x => x[1]).length + '/' + t.check.length }); }
+    if (this.plugin.settings.stepsOnCard && t.check.length) {
+      const steps = bottom.createEl('div', { cls: 'ev-steps' });
+      t.check.forEach((x, i) => {
+        const st = steps.createEl('div', { cls: 'ev-step' + (x[1] ? ' ok' : '') });
+        st.createEl('span', { cls: 'ev-step-box' }).innerHTML = I.check;
+        st.createEl('span', { cls: 'ev-step-tx', text: x[0] });
+        st.addEventListener('click', ev => { ev.stopPropagation(); this.plugin.toggleCheck(t, i); });
+      });
+    }
     const people = bottom.createEl('div', { cls: 'ev-people' });
     const owners = ownersOf(t);
     if (owners.length) { const av = people.createEl('span', { cls: 'avatars' }); owners.slice(0, 3).forEach(o => avEl(av, o)); people.createEl('span', { cls: 'ev-going', text: owners.length > 1 ? owners.length + ' người' : owners[0] }); }
@@ -1376,7 +1385,7 @@ const DASH_START = '<!-- pie:dashboard:start · vùng tự sinh theo Setting "Ph
 const DASH_END = '<!-- pie:dashboard:end -->';
 const DASH_INTRO = '---\ntitle: Việc con theo dự án\ntype: dashboard\nllm_managed: true\ntags:\n  - dashboard\n  - project\n---\n> [!info] Tổng hợp tự động (Pie Tasks × Dataview)\n> Mọi **task con** gắn field **Dự án** trong Pie Tasks được gom theo từng dự án ở đây — tick được trực tiếp, cập nhật live. Xem **tiến độ tổng** (số việc / %) theo dự án ở bảng `Dashboard Projects.base`. Đổi phạm vi ở Settings → Pie Tasks.\n';
 const DEFAULT_PROJECTS_FOLDER = '3.PROCESS/02.PROJECTS';
-const DEFAULTS = { profiles: null, activeId: null, defaultPeoplePath: DEFAULT_PEOPLE, taskDashboardScope: 'all', taskDashboardPath: DEFAULT_DASH, projectsFolder: DEFAULT_PROJECTS_FOLDER };
+const DEFAULTS = { profiles: null, activeId: null, defaultPeoplePath: DEFAULT_PEOPLE, taskDashboardScope: 'all', taskDashboardPath: DEFAULT_DASH, projectsFolder: DEFAULT_PROJECTS_FOLDER, stepsOnCard: false };
 // Chữ cái đại diện bảng = ký tự chữ/số đầu tiên của tên (như logo 'P' cũ, đẹp hơn emoji)
 function profLetter(name) { const m = (name || '').match(/[\p{L}\p{N}]/u); return m ? m[0].toUpperCase() : 'B'; }
 
@@ -1753,6 +1762,10 @@ class PieSettingTab extends obsidian.PluginSettingTab {
       .setDesc('Note chứa 2 khối Dataview (vùng tự sinh giữa marker). Chưa có sẽ tự tạo khi lưu phạm vi.')
       .addText(t => t.setPlaceholder(DEFAULT_DASH).setValue(this.plugin.settings.taskDashboardPath || DEFAULT_DASH).onChange(async v => { this.plugin.settings.taskDashboardPath = v.trim() || DEFAULT_DASH; await this.plugin.saveSettings(); }))
       .addButton(b => b.setButtonText('Ghi lại').onClick(async () => { await this.plugin.writeTaskDashboard(); new obsidian.Notice('Đã ghi dashboard việc con.'); }));
+    new obsidian.Setting(containerEl)
+      .setName('Hiện danh sách bước làm trên thẻ')
+      .setDesc('Bật: thẻ việc hiện đầy đủ các bước (tick được ngay trên thẻ). Tắt: chỉ hiện số đếm dạng 0/3.')
+      .addToggle(t => t.setValue(!!this.plugin.settings.stepsOnCard).onChange(async v => { this.plugin.settings.stepsOnCard = v; await this.plugin.saveSettings(); this.plugin.refreshLiveViews(); }));
   }
 }
 
