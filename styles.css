@@ -15,7 +15,7 @@
   --border: var(--background-modifier-border);
   --border-strong: var(--background-modifier-border-hover, var(--background-modifier-border));
   --text: var(--text-normal);
-  --blue: #2F6DB0;
+  --blue: var(--interactive-accent, #2F6DB0);
   --neutral-soft: var(--background-modifier-hover);
   --shadow-card: var(--shadow-s, 0 1px 2px rgba(0,0,0,.15));
   --shadow-pop: var(--shadow-l, 0 20px 48px rgba(0,0,0,.35));
@@ -143,12 +143,17 @@ body.theme-dark .pb-lane-pop { --pop-bg:#141A24; border-color:rgba(120,170,235,.
   background:var(--pop-bg,#fff); border:0.5px solid var(--pop-bd,rgba(18,26,38,.10));
   box-shadow:0 1px 1px rgba(8,17,28,.05), 0 12px 32px -8px rgba(8,17,28,.30), 0 22px 60px -20px rgba(8,17,28,.28);
   font-family:"PieInter",system-ui,-apple-system,sans-serif; color:var(--pop-tx,#131a26);
-  transform-origin:top left; animation:pb-pop-in .14s cubic-bezier(.22,1,.36,1); }
+  transform-origin:top left; animation:pb-pop-in .14s cubic-bezier(.22,1,.36,1);
+  max-height:min(560px, calc(100vh - 24px)); display:flex; flex-direction:column; overflow:hidden; }
 .pb-prof-pop[data-theme="dark"] { --pop-bg:#191f2b; --pop-bd:rgba(140,175,225,.16); --pop-tx:#EAF0FA; --pop-hover:rgba(160,195,245,.08); }
 @keyframes pb-pop-in { from { opacity:0; transform:translateY(-5px) scale(.975); } to { opacity:1; transform:none; } }
 .pb-prof-hd { font-size:11px; font-weight:600; color:var(--pop-tx); opacity:.42; padding:9px 12px 6px; }
-.pb-prof-list { display:flex; flex-direction:column; gap:1px; }
-.pb-prof-row { position:relative; display:flex; align-items:center; gap:11px; width:100%; text-align:left; padding:10px 10px 10px 8px; border:none; background:none; box-shadow:none !important; -webkit-appearance:none; appearance:none; border-radius:10px; cursor:pointer; color:inherit; transition:background .12s; }
+.pb-prof-list { display:flex; flex-direction:column; gap:1px; flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
+/* Scroll thông minh: header + divider + footer PIN, chỉ danh sách bảng ở giữa cuộn.
+   .pb-prof-row flex:0 0 auto để dòng KHÔNG bị co ép vừa khung — giữ nguyên cao rồi cuộn. */
+.pb-prof-hd, .pb-prof-div, .pb-prof-foot { flex:0 0 auto; }
+.pb-prof-row { flex:0 0 auto; }
+.pb-prof-row { position:relative; display:flex; align-items:center; gap:11px; width:100%; text-align:left; padding:10px 10px 10px 8px; border:none; background:none; -webkit-appearance:none; appearance:none; border-radius:10px; cursor:pointer; color:inherit; transition:background .12s; }
 .pb-prof-row:hover { background:var(--pop-hover,rgba(18,26,38,.05)); }
 .pb-prof-row.on { background:var(--pop-hover,rgba(18,26,38,.05)); }
 .pb-prof-row.on::before { content:""; position:absolute; left:1px; top:50%; transform:translateY(-50%); width:3px; height:18px; border-radius:3px; background:var(--blue,#2F6DB0); }
@@ -163,23 +168,24 @@ body.theme-dark .pb-lane-pop { --pop-bg:#141A24; border-color:rgba(120,170,235,.
 .pb-prof-ck svg { width:16px; height:16px; }
 .pb-prof-div { height:0.5px; background:var(--pop-bd,rgba(18,26,38,.09)); margin:6px 8px; }
 .pb-prof-foot { display:flex; flex-direction:column; gap:1px; }
-.pb-prof-act { display:flex; align-items:center; gap:11px; width:100%; text-align:left; padding:8px 10px 8px 8px; border:none; background:none; box-shadow:none !important; -webkit-appearance:none; appearance:none; border-radius:10px; cursor:pointer; color:var(--pop-tx); font-size:13.5px; font-weight:500; transition:background .12s; }
+.pb-prof-act { display:flex; align-items:center; gap:11px; width:100%; text-align:left; padding:8px 10px 8px 8px; border:none; background:none; -webkit-appearance:none; appearance:none; border-radius:10px; cursor:pointer; color:var(--pop-tx); font-size:13.5px; font-weight:500; transition:background .12s; }
 .pb-prof-act:hover { background:var(--pop-hover,rgba(18,26,38,.05)); }
 .pb-prof-ai { flex:0 0 auto; width:30px; height:30px; display:grid; place-items:center; border-radius:8px; color:var(--pop-tx); opacity:.62; }
 .pb-prof-ai svg { width:16px; height:16px; }
-/* Ép phẳng: triệt tiêu border/background/shadow mặc định của thẻ <button> Obsidian trong popover */
-.pb-prof-pop .pb-prof-row,
-.pb-prof-pop .pb-prof-act {
-  border:none !important; box-shadow:none !important; outline:none !important;
-  background-color:transparent !important; background-image:none !important;
-  -webkit-appearance:none !important; appearance:none !important;
-  justify-content:flex-start !important;
-  height:auto !important; min-height:0 !important;
+/* Ép phẳng thẻ <button> mặc định Obsidian trong popover. Specificity 0,3,0 (thêm tổ tiên
+   .pb-prof-list/.pb-prof-foot) đã thắng cả button:not(.clickable-icon):hover (0,2,1) nên KHÔNG cần !important. */
+.pb-prof-pop .pb-prof-list .pb-prof-row,
+.pb-prof-pop .pb-prof-foot .pb-prof-act {
+  border:none; box-shadow:none; outline:none;
+  background-color:transparent; background-image:none;
+  -webkit-appearance:none; appearance:none;
+  justify-content:flex-start;
+  height:auto; min-height:0;
 }
-.pb-prof-pop .pb-prof-row:hover,
-.pb-prof-pop .pb-prof-row.on,
-.pb-prof-pop .pb-prof-act:hover {
-  background-color:var(--pop-hover,rgba(18,26,38,.05)) !important;
+.pb-prof-pop .pb-prof-list .pb-prof-row:hover,
+.pb-prof-pop .pb-prof-list .pb-prof-row.on,
+.pb-prof-pop .pb-prof-foot .pb-prof-act:hover {
+  background-color:var(--pop-hover,rgba(18,26,38,.05));
 }
 .pt-iconchip.pt-iconletter { background:var(--background-modifier-hover); color:var(--text-muted); font-family:"PieMono",ui-monospace,monospace; font-weight:800; font-size:12px; }
 .pt-imgbtn { display:inline-flex; align-items:center; gap:7px; }
@@ -191,6 +197,11 @@ body.theme-dark .pb-lane-pop { --pop-bg:#141A24; border-color:rgba(120,170,235,.
 .pt-pacts { flex:0 0 auto; display:flex; gap:4px; }
 .pt-pacts button { padding:4px 9px; font-size:12px; }
 .pt-pacts button.danger { color:#C0392B; }
+/* Modal quản lý bảng: scroll thông minh — nút "Thêm bảng" PIN dưới, chỉ danh sách bảng (.pt-plist) cuộn ở giữa.
+   .pt-mgr chính là .modal-content (được addClass trong render). */
+.pt-mgr { display:flex; flex-direction:column; max-height:min(72vh, 620px); overflow:hidden; }
+.pt-plist { flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; margin:0 -4px; padding:0 4px; }
+.pt-mgr .mod-cta { flex:0 0 auto; }
 
 /* event card */
 .pie-board-root .ev { position:relative; width:100%; border-radius:14px; padding:12px; cursor:pointer; text-align:left; font-family:inherit; -webkit-appearance:none; appearance:none;
@@ -238,7 +249,7 @@ body.theme-dark .pb-lane-pop { --pop-bg:#141A24; border-color:rgba(120,170,235,.
 .pie-board-root .dw-close svg { width:18px; height:18px; } .pie-board-root .dw-close:hover { background:var(--neutral-soft); color:var(--text); }
 .pie-board-root .dw-when { display:flex; align-items:center; gap:8px; margin-top:15px; font-family:var(--pie-mono); font-size:12px; color:var(--text-muted); flex-wrap:wrap; }
 .pie-board-root .dw-when svg { width:15px; height:15px; }
-.pie-board-root .dw-when .badge { font-size:10px; font-weight:700; padding:3px 9px; border-radius:999px; }
+.pie-board-root .dw-when .badge { font-size:10px; font-weight:700; padding:3px 9px; border-radius:999px; white-space:nowrap; flex:0 0 auto; }
 .pie-board-root .dw-sec { margin-top:20px; }
 .pie-board-root .eyebrow { font-family:var(--pie-mono); font-size:10.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text-faint); margin-bottom:11px; }
 .pie-board-root .dt-grid { display:grid; grid-template-columns:1.3fr 1fr 1fr; gap:9px; }
@@ -375,7 +386,14 @@ body.theme-dark .pb-lane-pop { --pop-bg:#141A24; border-color:rgba(120,170,235,.
 .is-mobile .pie-board-root .pb-col { flex-basis:250px; width:250px; }
 .is-mobile .pie-board-root .pb-drawer { width:100%; max-width:100%; }
 /* List: giữ bề rộng tối thiểu → cuộn ngang thay vì bóp méo cột */
-.is-mobile .pie-board-root .pb-lhead, .is-mobile .pie-board-root .pb-lrow { min-width:620px; }
+.is-mobile .pie-board-root .pb-lhead, .is-mobile .pie-board-root .pb-lrow { grid-template-columns:10px minmax(200px,1fr) 130px 150px 110px 120px; min-width:800px; }
+/* THỜI GIAN drawer mobile: mỗi ô rộng AUTO theo nội dung (nhỏ gọn, KHÔNG kéo dãn nửa/1-3 hàng),
+   flex căn trái + gap → không đè nhau. Wrap nếu 1 hàng không đủ chỗ. */
+.is-mobile .pie-board-root .dt-grid { display:flex; flex-wrap:wrap; gap:8px 10px; align-items:flex-start; }
+.is-mobile .pie-board-root .dt-grid .dt-field { flex:0 0 auto; min-width:0; align-items:flex-start; }
+.is-mobile .pie-board-root .dt-in { width:auto; min-width:0; box-sizing:border-box; text-align:center; padding:8px 10px; font-size:12px; }
+/* Popover chuyển bảng trên mobile: chừa top (status bar) + bottom (toolbar) để header không kẹt sau đồng hồ, footer không đụng thanh dưới; danh sách giữa cuộn (scroll thông minh) */
+.is-mobile .pb-prof-pop { max-height:min(560px, calc(100vh - 150px)); }
 .is-mobile .pie-board-root .pb-viewpane { overflow-x:auto; }
 /* Lane thu gọn: giữ 48px trên mobile (rule .pb-col width:250px ở trên cùng specificity đè mất) */
 .is-mobile .pie-board-root .pb-col.collapsed { flex:0 0 48px; width:48px; }
@@ -384,6 +402,15 @@ body.theme-dark .pb-lane-pop { --pop-bg:#141A24; border-color:rgba(120,170,235,.
 /* Filter trạng thái: mobile cho 1 hàng cuộn ngang thay vì wrap 2/hàng lộn xộn */
 .is-mobile .pie-board-root .pb-statusbar { flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; padding:9px 12px; gap:7px; }
 .is-mobile .pie-board-root .pb-statusbar > * { flex:0 0 auto; }
+/* Modal thêm/sửa bảng (:has(.pt-iconpick)) VÀ quản lý bảng (:has(.pt-prow)): mobile không để
+   full-width chạm 2 mép → thu hẹp + lề 2 bên + bo góc. Scope để không đụng modal khác. */
+.is-mobile .modal:has(.pt-iconpick),
+.is-mobile .modal:has(.pt-prow) {
+  width: calc(100% - 32px) !important;
+  max-width: 460px !important;
+  margin-inline: auto !important;
+  border-radius: 16px !important;
+}
 
 /* Setup modal (one-click thiết lập hệ thống) */
 .pt-setup h3 { margin:0 0 4px; }

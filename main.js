@@ -1322,10 +1322,11 @@ class ProfileManagerModal extends obsidian.Modal {
   constructor(app, plugin) { super(app); this.plugin = plugin; }
   onOpen() { this.titleEl.setText('Quản lý bảng'); this.render(); }
   render() {
-    const c = this.contentEl; c.empty();
+    const c = this.contentEl; c.empty(); c.addClass('pt-mgr');
+    const list = c.createDiv({ cls: 'pt-plist' });
     const profs = this.plugin.settings.profiles;
     profs.forEach((p, i) => {
-      const row = c.createDiv({ cls: 'pt-prow' });
+      const row = list.createDiv({ cls: 'pt-prow' });
       const sw = row.createEl('span', { cls: 'pb-prof-sw' }); paintProfChip(sw, p, this.plugin.app);
       const info = row.createDiv({ cls: 'pt-pinfo' });
       info.createEl('div', { cls: 'pt-pname', text: p.name + (p.id === this.plugin.settings.activeId ? ' · đang mở' : '') });
@@ -1359,8 +1360,9 @@ const IMG_RE = /\.(png|jpe?g|webp|gif|svg|bmp|avif)$/i;
 // Vẽ nội dung chip đại diện bảng: ảnh vault / icon SVG / chữ cái đầu tên
 function paintProfChip(el, prof, app) {
   el.empty(); el.removeClass('pb-chip-img');
-  el.style.background = prof.color || '#2F6DB0';
-  el.style.setProperty('--pc', prof.color || '#2F6DB0'); // màu khung viền cho chip ảnh
+  const col = (prof.color && prof.color !== '#2F6DB0') ? prof.color : 'var(--interactive-accent)'; // #2F6DB0 cũ / trống → dùng accent của theme
+  el.style.background = col;
+  el.style.setProperty('--pc', col); // màu khung viền cho chip ảnh
   if (prof.iconType === 'image' && prof.icon && app.vault.getAbstractFileByPath(prof.icon)) {
     el.addClass('pb-chip-img');
     const img = el.createEl('img'); img.src = app.vault.adapter.getResourcePath(prof.icon);
