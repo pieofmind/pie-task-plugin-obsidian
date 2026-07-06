@@ -2,6 +2,11 @@
 
 Định dạng theo [Keep a Changelog](https://keepachangelog.com/) + [SemVer](https://semver.org/).
 
+## [2.1.0]
+
+### Added
+- **Đa ngôn ngữ (i18n) — Tiếng Việt + English**, đổi trong Settings → Pie Tasks → Ngôn ngữ. Toàn bộ giao diện (view, nút, drawer, settings, modal, thông báo, lệnh) dịch qua hàm `tr()` + dict EN; mặc định Tiếng Việt. **Dữ liệu trong file KHÔNG đổi** — tên lane, tiêu đề việc và nhãn trạng thái on-disk vẫn giữ nguyên (chỉ *hiển thị* được dịch), nên không phá format/sync 1Office & Google Tasks.
+
 ## [2.0.3]
 
 ### Added

@@ -27,6 +27,102 @@ const LANE_TONES = ['blue', 'amber', 'green', 'steel', 'purple', 'pink', 'teal',
 const AVATAR_TONES = ['blue', 'amber', 'green', 'steel', 'purple', 'pink', 'teal', 'orange', 'burgundy'];
 const OWNER_TONE = { 'Pie': 'blue', 'Nguyên': 'ink', 'Claude': 'claude' };
 
+// ---------- i18n ----------
+// VN là ngôn ngữ gốc/khoá. tr('chuỗi VN') trả bản EN nếu LANG='en' & có trong I18N_EN,
+// ngược lại trả nguyên chuỗi VN → tiếng Việt khỏi maintain, chỉ nuôi 1 dict EN.
+let LANG = 'vi';
+function tr(s) { return (LANG === 'en' && I18N_EN[s] != null) ? I18N_EN[s] : s; }
+const I18N_EN = {
+  // views / nav
+  'Tất cả': 'All', 'Ngày': 'Day', 'Tuần': 'Week', 'Tháng': 'Month', 'Khoảng': 'Range',
+  'Bảng': 'Board', 'Danh sách': 'List', 'Lịch': 'Calendar', 'Thống kê': 'Stats',
+  'Về hôm nay': 'Back to today', 'Hôm nay': 'Today', 'Xem trước': 'Preview',
+  // board / card
+  'Không có việc': 'No tasks', 'Chưa giao': 'Unassigned', 'Quá hạn': 'Overdue',
+  'Thêm việc': 'Add task', 'Thêm lane': 'Add lane', 'Thu/mở': 'Collapse/expand',
+  'Tuỳ chọn lane': 'Lane options', 'Bấm chọn · nhấp đúp để đổi tên': 'Click to select · double-click to rename',
+  ' việc · ': ' tasks · ', ' quá hạn · ': ' overdue · ', ' hoàn thành': ' done', ' người': ' people',
+  '(không tiêu đề)': '(untitled)', 'Việc mới': 'New task',
+  // lane menu
+  'Sửa tên lane': 'Rename lane', 'Chèn lane trước': 'Insert lane before', 'Chèn lane sau': 'Insert lane after',
+  'Sắp xếp theo tên': 'Sort by name', 'Sắp xếp theo hạn': 'Sort by due date', 'Xoá lane': 'Delete lane',
+  // drawer
+  'Dự án': 'Project', 'Gắn vào dự án': 'Add to project', 'Gỡ khỏi dự án': 'Remove from project',
+  'Thời gian': 'Time', 'Trạng thái': 'Status', 'Độ ưu tiên': 'Priority', 'Chuyển lane': 'Move lane',
+  'Phụ trách': 'Assignee', 'Thêm người': 'Add person', 'Gỡ người này': 'Remove this person',
+  'Việc kế tiếp · ': 'Next steps · ', 'Thêm bước': 'Add step', 'Xoá bước': 'Delete step',
+  'Tài liệu · file liên quan': 'Docs · related files', 'Gắn note/file': 'Attach note/file', 'Gỡ liên kết': 'Remove link',
+  'Mã việc 1Office': '1Office task ID', 'Chưa có ngày': 'No date',
+  'Bắt đầu': 'Start', 'Kết thúc': 'End',
+  // drawer actions
+  'Đánh dấu xong': 'Mark done', 'Bỏ xong': 'Mark undone', 'Nhân bản': 'Duplicate',
+  'Huỷ việc': 'Cancel task', 'Xoá việc': 'Delete task',
+  // list / stats / calendar
+  'Danh sách công việc': 'Task list', 'Không có việc khớp bộ lọc.': 'No tasks match the filter.',
+  'Tất cả người': 'Everyone', 'Mọi trạng thái': 'All statuses',
+  'Mọi lúc': 'Any time', 'Tuần này': 'This week', 'Tháng này': 'This month', 'Khoảng tùy chọn': 'Custom range',
+  'Việc': 'Task', 'Lane': 'Lane', 'Người': 'People', 'Hạn': 'Due',
+  'Lịch — ': 'Calendar — ', 'Tháng ': 'Month ', ' nữa': ' more',
+  'Sắp tới & quá hạn': 'Upcoming & overdue', 'Không có dữ liệu': 'No data', 'Khối lượng theo người': 'Workload by person',
+  // status labels (display only — file vẫn giữ VN)
+  'Đang chờ': 'Pending', 'Đang thực hiện': 'In progress', 'Đang đánh giá': 'In review',
+  'Hoàn thành': 'Done', 'Chưa hoàn thành': 'Not done', 'Không hoàn thành': 'Failed',
+  'Tạm dừng': 'Paused', 'Hủy': 'Cancelled', 'Dự kiến': 'Expected', 'Đã đóng': 'Closed', 'Lỗi': 'Error',
+  'Ưu tiên cao': 'High priority', 'Thường': 'Normal', 'Ưu tiên': 'Priority',
+  // profiles / popover
+  'Bảng của bạn': 'Your boards', 'Thêm bảng mới': 'Add board', 'Quản lý bảng': 'Manage boards',
+  'Thêm bảng': 'Add board', '＋ Thêm bảng': '＋ Add board', 'Sửa bảng': 'Edit board',
+  'Sửa': 'Edit', 'Xoá': 'Delete', 'Huỷ': 'Cancel', 'Lên': 'Up', 'Xuống': 'Down',
+  'Bảng: ': 'Board: ', 'Mở ': 'Open ', ' · đang mở': ' · open',
+  // lane / profile modal
+  'Tên lane': 'Lane name', 'Sửa lane': 'Edit lane', 'Tự': 'Auto', 'Màu': 'Color',
+  'Màu tự động theo vị trí lane': 'Auto color by lane position', 'Tự động theo tên lane': 'Auto by lane name',
+  'Tên bảng': 'Board name', 'Biểu tượng (để trống = chữ cái đầu tên)': 'Icon (empty = first letter of name)',
+  'Chữ cái đầu tên': 'First letter of name', ' Chọn ảnh từ vault…': ' Pick image from vault…',
+  'Bỏ ảnh': 'Remove image', 'Màu nền': 'Background color', 'Chọn…': 'Select…',
+  'File công việc (bắt buộc)': 'Task file (required)',
+  'File nhân sự (tuỳ chọn — để trống dùng mặc định chung)': 'People file (optional — empty uses shared default)',
+  // pickers
+  'Gõ để tìm / thêm người phụ trách…': 'Type to search / add an assignee…',
+  '➕ Thêm "': '+ Add "', 'Gõ để tìm note / file trong vault…': 'Type to search a note / file in the vault…',
+  'Chọn dự án (note có subtype / type: project)…': 'Pick a project (note with subtype / type: project)…',
+  // modals / notices
+  'Không tìm thấy file': 'File not found', 'Chưa đọc được "': 'Could not read "',
+  'Xác nhận': 'Confirm', 'Đồng ý': 'OK', 'Xoá bảng "': 'Delete board "',
+  '"? File .md KHÔNG bị xoá, chỉ gỡ khỏi danh sách bảng.': '"? The .md file is NOT deleted, only removed from the board list.',
+  'Phải còn ít nhất 1 bảng.': 'At least 1 board must remain.',
+  'Hãy chọn file ảnh (png/jpg/webp/svg…).': 'Please choose an image file (png/jpg/webp/svg…).',
+  // setup
+  ' Thiết lập hệ thống quản lý công việc': ' Set up the task management system',
+  'Dựng sẵn mọi thứ Pie Tasks cần. Chỉ tạo file còn thiếu — file đã có sẽ được giữ nguyên.': 'Sets up everything Pie Tasks needs. Only creates missing files — existing files are kept.',
+  'Thư mục chứa dự án': 'Projects folder',
+  'Nơi đặt Dashboard Projects.base + các note có "subtype: project".': 'Where Dashboard Projects.base + notes with "subtype: project" live.',
+  'Thiết lập': 'Set up', 'Đang dựng…': 'Setting up…', 'Thiết lập nhanh': 'Quick setup', 'Thiết lập nhanh hệ thống': 'Quick system setup',
+  'Dựng 1 lần: bảng công việc + file nhân sự + Dashboard dự án (Bases) + Dashboard việc con (Dataview). Chỉ tạo file còn thiếu.': 'One-shot: task board + people file + Projects dashboard (Bases) + child-task dashboard (Dataview). Only creates missing files.',
+  // settings tab
+  'Bảng công việc (profile)': 'Task board (profile)',
+  'Mỗi bảng = 1 file .md riêng (quản lý theo project). Đổi bảng bằng chip góc trên-trái board.': 'Each board = its own .md file (manage per project). Switch boards via the chip at the top-left.',
+  'Đường dẫn file bảng đang mở': 'Current board file path', 'File Markdown của bảng hiện tại "': 'Markdown file of the current board "',
+  'File nhân sự mặc định (dùng chung)': 'Default people file (shared)',
+  'File bảng nhân sự cho picker "Thêm người phụ trách" (dạng | Tên | ID | …). Bảng nào để trống peoplePath sẽ dùng file này.': 'People table file for the "Add assignee" picker (format | Name | ID | …). Boards with empty peoplePath use this file.',
+  'Phạm vi bảng việc con theo dự án': 'Child-task board scope by project',
+  'Dataview gom task con theo dự án trong note dashboard. "Tất cả" = mọi task gắn dự án trong vault (kể cả checklist thừa kế frontmatter). "Chỉ Pie Tasks" = chỉ task gắn dự án trực tiếp trên các bảng Pie.': 'Dataview groups child tasks by project in the dashboard note. "All" = every project-tagged task in the vault (incl. checklists inheriting frontmatter). "Pie Tasks only" = only tasks tagged directly on Pie boards.',
+  'Đường dẫn note dashboard việc con': 'Child-task dashboard note path',
+  'Note chứa 2 khối Dataview (vùng tự sinh giữa marker). Chưa có sẽ tự tạo khi lưu phạm vi.': 'Note with 2 Dataview blocks (auto-generated between markers). Created automatically when you save the scope.',
+  'Ghi lại': 'Rewrite',
+  'Hiện danh sách bước làm trên thẻ': 'Show step list on card',
+  'Bật: thẻ việc hiện đầy đủ các bước (tick được ngay trên thẻ). Tắt: chỉ hiện số đếm dạng 0/3.': 'On: cards show all steps (tickable on the card). Off: only a count like 0/3.',
+  // commands / ribbon
+  'Pie Tasks (từ file)': 'Pie Tasks (from file)',
+  'Mở Pie Tasks — dữ liệu thật từ file': 'Open Pie Tasks — real data from file',
+  'Mở giao diện mẫu — Day Planner': 'Open demo — Day Planner', 'Mở giao diện mẫu — Studio': 'Open demo — Studio',
+  'Tải lại TASKS.md': 'Reload TASKS.md', 'Tải lại': 'Reload',
+  'Ngôn ngữ': 'Language', 'Ngôn ngữ hiển thị của plugin (dữ liệu trong file vẫn giữ nguyên).': 'Display language of the plugin (data in files stays unchanged).',
+  'Ngày ': 'Day ', 'vd: Dự án Website': 'e.g. Website Project', 'vd: PROJECTS/task1.md': 'e.g. PROJECTS/task1.md', 'vd: People.md': 'e.g. People.md',
+  'Bảng chính': 'Main board', 'Đã ghi dashboard việc con.': 'Child-task dashboard written.',
+  'Pie Tasks: tạo ': 'Pie Tasks: created ', ' file': ' file(s)', ', giữ ': ', kept ', ' file đã có': ' existing file(s)',
+};
+
 // bộ trạng thái thật của 1Office (enum field `status`)
 const STATES = {
   pending:  { lab: 'Đang chờ',        c: '#8A8F98' },
@@ -615,8 +711,8 @@ class PieLiveView extends obsidian.ItemView {
       const head = main.createEl('div', { cls: 'pb-head' });
       const hl = head.createEl('div', { cls: 'pb-head-l' });
       hl.createEl('div', { cls: 'pb-title', text: 'Pie Tasks' });
-      hl.createEl('div', { cls: 'pb-sub', text: 'Không tìm thấy file' });
-      main.createEl('div', { cls: 'pb-empty', text: 'Chưa đọc được "' + this.plugin.prof().taskPath + '". Chỉnh đường dẫn ở bảng (chip góc trên) hoặc Settings → Pie Tasks.' });
+      hl.createEl('div', { cls: 'pb-sub', text: tr('Không tìm thấy file') });
+      main.createEl('div', { cls: 'pb-empty', text: tr('Chưa đọc được "') + this.plugin.prof().taskPath + '". Chỉnh đường dẫn ở bảng (chip góc trên) hoặc Settings → Pie Tasks.' });
       return;
     }
     this.renderRail(c);
@@ -650,18 +746,18 @@ class PieLiveView extends obsidian.ItemView {
   renderRail(c) {
     const rail = c.createEl('nav', { cls: 'pb-rail' });
     const p = this.plugin.prof();
-    const chip = rail.createEl('button', { cls: 'pb-brand pb-profchip', attr: { title: 'Bảng: ' + p.name + ' — bấm để đổi' } });
+    const chip = rail.createEl('button', { cls: 'pb-brand pb-profchip', attr: { title: tr('Bảng: ') + p.name + ' — bấm để đổi' } });
     paintProfChip(chip, p, this.app);
     chip.addEventListener('click', ev => { ev.stopPropagation(); this.openProfileMenu(chip); });
-    const navs = [['board', I.board, 'Bảng'], ['list', I.listNav, 'Danh sách'], ['calendar', I.calNav, 'Lịch'], ['dashboard', I.dash, 'Thống kê']];
+    const navs = [['board', I.board, tr('Bảng')], ['list', I.listNav, tr('Danh sách')], ['calendar', I.calNav, tr('Lịch')], ['dashboard', I.dash, tr('Thống kê')]];
     navs.forEach(([v, ic, title]) => {
       const b = rail.createEl('button', { cls: 'pb-railbtn' + (this.view === v ? ' on' : ''), attr: { title } });
       b.innerHTML = ic;
       b.addEventListener('click', () => this.setView(v));
     });
-    const rl = rail.createEl('button', { cls: 'pb-railbtn', attr: { title: 'Tải lại' } }); rl.innerHTML = I.refresh;
+    const rl = rail.createEl('button', { cls: 'pb-railbtn', attr: { title: tr('Tải lại') } }); rl.innerHTML = I.refresh;
     rl.addEventListener('click', () => this.plugin.reload());
-    const op = rail.createEl('button', { cls: 'pb-railbtn', attr: { title: 'Mở ' + this.plugin.prof().taskPath } }); op.innerHTML = I.open;
+    const op = rail.createEl('button', { cls: 'pb-railbtn', attr: { title: tr('Mở ') + this.plugin.prof().taskPath } }); op.innerHTML = I.open;
     op.addEventListener('click', () => { if (this.plugin.taskFile) this.app.workspace.getLeaf(true).openFile(this.plugin.taskFile); });
     rail.createEl('div', { cls: 'pb-rail-sp' });
     return rail;
@@ -673,14 +769,14 @@ class PieLiveView extends obsidian.ItemView {
     const hl = head.createEl('div', { cls: 'pb-head-l' });
     hl.createEl('div', { cls: 'pb-title', text: 'Pie Tasks' });
     const overdue = tasks.filter(t => t.over).length, doneN = tasks.filter(t => t.done).length;
-    hl.createEl('div', { cls: 'pb-sub', text: tasks.length + ' việc · ' + overdue + ' quá hạn · ' + doneN + ' hoàn thành' });
+    hl.createEl('div', { cls: 'pb-sub', text: tasks.length + tr(' việc · ') + overdue + tr(' quá hạn · ') + doneN + tr(' hoàn thành') });
     if (this.view === 'board') {
       const seg = head.createEl('div', { cls: 'pb-viewseg' });
       VIEWS.forEach(([k, lab]) => {
-        const b = seg.createEl('button', { cls: 'pb-vseg' + (k === this.viewMode ? ' on' : ''), text: lab });
+        const b = seg.createEl('button', { cls: 'pb-vseg' + (k === this.viewMode ? ' on' : ''), text: tr(lab) });
         b.addEventListener('click', () => { this.viewMode = k; this.persist(); this.render(); });
       });
-      const add = head.createEl('button', { cls: 'pb-icon-btn', attr: { title: 'Thêm việc' } }); add.innerHTML = I.plus;
+      const add = head.createEl('button', { cls: 'pb-icon-btn', attr: { title: tr('Thêm việc') } }); add.innerHTML = I.plus;
       add.addEventListener('click', () => { const ls = this.plugin.taskData.lanes; if (ls.length) this.plugin.addTask(ls[0]); });
     }
   }
@@ -705,19 +801,19 @@ class PieLiveView extends obsidian.ItemView {
       const selectLane = ev => { if (ev.target.closest('button, a')) return; this.selLane = this.selLane === nm ? null : nm; this.render(); };
       const hc = col.createEl('div', { cls: 'pb-headcol' });
       hc.addEventListener('click', selectLane);
-      const fold = hc.createEl('button', { cls: 'pb-fold', attr: { title: 'Thu/mở' } }); fold.innerHTML = I.chev;
+      const fold = hc.createEl('button', { cls: 'pb-fold', attr: { title: tr('Thu/mở') } }); fold.innerHTML = I.chev;
       fold.addEventListener('click', ev => { ev.stopPropagation(); this.toggleLane(nm); });
       if (isCol) { const fl = col.createEl('div', { cls: 'pb-col-foldlabel', text: nm }); fl.addEventListener('click', selectLane); this.wireLaneDrag(fl, col, nm); this.wireDrop(col, nm); return; }
       this.wireLaneDrag(hc, col, nm);
       const ic = hc.createEl('span', { cls: 'pb-headic' }); ic.style.background = laneColor; ic.innerHTML = I[laneIcon(laneRaw)] || I.list;
-      const nmEl = hc.createEl('span', { cls: 'pb-headnm', text: nm, attr: { title: 'Bấm chọn · nhấp đúp để đổi tên' } });
+      const nmEl = hc.createEl('span', { cls: 'pb-headnm', text: nm, attr: { title: tr('Bấm chọn · nhấp đúp để đổi tên') } });
       nmEl.addEventListener('dblclick', ev => { ev.stopPropagation(); this.plugin.renameLane(nm); });
       hc.createEl('span', { cls: 'pb-headct', text: String(list.length) });
-      const menu = hc.createEl('button', { cls: 'pb-lanemenu', attr: { title: 'Tuỳ chọn lane' } }); menu.innerHTML = I.dots;
+      const menu = hc.createEl('button', { cls: 'pb-lanemenu', attr: { title: tr('Tuỳ chọn lane') } }); menu.innerHTML = I.dots;
       menu.addEventListener('click', ev => { ev.stopPropagation(); this.openLaneMenu(nm, laneRaw, menu); });
-      if (!list.length) col.createEl('div', { cls: 'pb-col-empty', text: 'Không có việc' });
+      if (!list.length) col.createEl('div', { cls: 'pb-col-empty', text: tr('Không có việc') });
       else list.forEach(t => this.renderCard(col, t));
-      const addb = col.createEl('button', { cls: 'pb-lane-add' }); addb.innerHTML = I.plus + 'Thêm việc';
+      const addb = col.createEl('button', { cls: 'pb-lane-add' }); addb.innerHTML = I.plus + tr('Thêm việc');
       addb.addEventListener('click', ev => { ev.stopPropagation(); this.plugin.addTask(laneRaw); });
       this.wireDrop(col, nm);
     });
@@ -759,23 +855,23 @@ class PieLiveView extends obsidian.ItemView {
     } else {
       tools.createEl('span', { cls: 'pb-scope', text: this.scopeLabel() });
     }
-    const tb = tools.createEl('button', { cls: 'pb-icon-btn', attr: { title: 'Về hôm nay' } }); tb.innerHTML = I.clock;
+    const tb = tools.createEl('button', { cls: 'pb-icon-btn', attr: { title: tr('Về hôm nay') } }); tb.innerHTML = I.clock;
     tb.addEventListener('click', () => { this.anchor = tod; this.rangeStart = this.rangeEnd = tod; this.render(); });
   }
-  scopeLabel() { const r = activeRange(this.viewMode, this.anchor, this.rangeStart, this.rangeEnd); if (!r) return 'Tất cả'; if (this.viewMode === 'day') return 'Ngày ' + fmtDate(r[0]); if (this.viewMode === 'month') return 'Tháng ' + (+r[0].split('-')[1]); return fmtDate(r[0]) + ' – ' + fmtDate(r[1]); }
+  scopeLabel() { const r = activeRange(this.viewMode, this.anchor, this.rangeStart, this.rangeEnd); if (!r) return tr('Tất cả'); if (this.viewMode === 'day') return tr('Ngày ') + fmtDate(r[0]); if (this.viewMode === 'month') return tr('Tháng ') + (+r[0].split('-')[1]); return fmtDate(r[0]) + ' – ' + fmtDate(r[1]); }
 
   renderStatusbar(main) {
     const tasks = this.allTasks();
     const bar = main.createEl('div', { cls: 'pb-statusbar' });
     const cnt = k => k === 'all' ? tasks.length : k === 'over' ? tasks.filter(t => t.over).length : k === 'completed' ? tasks.filter(t => t.done || t.status === 'completed').length : tasks.filter(t => t.status === k && !t.over && !t.done).length;
-    const chips = [['all', 'Tất cả', '#8A8F98'], ...FILTER_ORDER.map(k => [k, STATES[k].lab, STATES[k].c])];
+    const chips = [['all', tr('Tất cả'), '#8A8F98'], ...FILTER_ORDER.map(k => [k, tr(STATES[k].lab), STATES[k].c])];
     chips.forEach(([k, lab, col]) => {
       const b = bar.createEl('button', { cls: 'pb-sf' + (k === this.filter ? ' on' : '') });
       b.style.setProperty('--sfc', col);
       b.createEl('span', { cls: 'dot' }); b.appendText(lab + ' '); b.createEl('span', { cls: 'n', text: String(cnt(k)) });
       b.addEventListener('click', () => { this.filter = k; this.render(); });
     });
-    const al = bar.createEl('button', { cls: 'pb-add-lane' }); al.innerHTML = I.plus + 'Thêm lane';
+    const al = bar.createEl('button', { cls: 'pb-add-lane' }); al.innerHTML = I.plus + tr('Thêm lane');
     al.addEventListener('click', () => this.plugin.addLane());
   }
 
@@ -794,8 +890,8 @@ class PieLiveView extends obsidian.ItemView {
     title.appendText(t.title);
     const bottom = card.createEl('div', { cls: 'ev-bottom' });
     const chips = bottom.createEl('div', { cls: 'ev-chips' });
-    const state = chips.createEl('span', { cls: 'ev-state' }); state.innerHTML = SI[rs] || SI.dot; state.appendText(RS.lab);
-    if (t.over) { const ov = chips.createEl('span', { cls: 'ev-over' }); ov.innerHTML = SI.over; ov.appendText('Quá hạn'); }
+    const state = chips.createEl('span', { cls: 'ev-state' }); state.innerHTML = SI[rs] || SI.dot; state.appendText(tr(RS.lab));
+    if (t.over) { const ov = chips.createEl('span', { cls: 'ev-over' }); ov.innerHTML = SI.over; ov.appendText(tr('Quá hạn')); }
     if (t.check.length) { const cc = chips.createEl('span', { cls: 'ev-check', text: '✓ ' + t.check.filter(x => x[1]).length + '/' + t.check.length }); }
     if (this.plugin.settings.stepsOnCard && t.check.length) {
       const steps = bottom.createEl('div', { cls: 'ev-steps' });
@@ -808,8 +904,8 @@ class PieLiveView extends obsidian.ItemView {
     }
     const people = bottom.createEl('div', { cls: 'ev-people' });
     const owners = ownersOf(t);
-    if (owners.length) { const av = people.createEl('span', { cls: 'avatars' }); owners.slice(0, 3).forEach(o => avEl(av, o)); people.createEl('span', { cls: 'ev-going', text: owners.length > 1 ? owners.length + ' người' : owners[0] }); }
-    else people.createEl('span', { cls: 'ev-going', text: 'Chưa giao' });
+    if (owners.length) { const av = people.createEl('span', { cls: 'avatars' }); owners.slice(0, 3).forEach(o => avEl(av, o)); people.createEl('span', { cls: 'ev-going', text: owners.length > 1 ? owners.length + tr(' người') : owners[0] }); }
+    else people.createEl('span', { cls: 'ev-going', text: tr('Chưa giao') });
     card.addEventListener('click', () => this.openCard(t));
     card.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); this.openCard(t); } });
     card.addEventListener('dragstart', ev => { ev.dataTransfer.setData('text/plain', taskKey(t)); ev.dataTransfer.effectAllowed = 'move'; card.classList.add('dragging'); this._draggingKey = taskKey(t); this._dragEl = card; this._dragAnchor = null; this._reorderCommitted = false; });
@@ -873,7 +969,7 @@ class PieLiveView extends obsidian.ItemView {
   openLaneMenu(nm, laneRaw, btn) {
     this.closeLaneMenu();
     const pop = document.createElement('div'); pop.className = 'pb-lane-pop'; this._lanePop = pop;
-    const items = [['Sửa tên lane', () => this.plugin.renameLane(nm)], ['div'], ['Chèn lane trước', () => this.plugin.insertLane(nm, true)], ['Chèn lane sau', () => this.plugin.insertLane(nm, false)], ['div'], ['Sắp xếp theo tên', () => this.plugin.sortLane(nm, 'text')], ['Sắp xếp theo hạn', () => this.plugin.sortLane(nm, 'due')], ['div'], ['Xoá lane', () => this.plugin.deleteLane(nm), 'danger']];
+    const items = [[tr('Sửa tên lane'), () => this.plugin.renameLane(nm)], ['div'], [tr('Chèn lane trước'), () => this.plugin.insertLane(nm, true)], [tr('Chèn lane sau'), () => this.plugin.insertLane(nm, false)], ['div'], [tr('Sắp xếp theo tên'), () => this.plugin.sortLane(nm, 'text')], [tr('Sắp xếp theo hạn'), () => this.plugin.sortLane(nm, 'due')], ['div'], [tr('Xoá lane'), () => this.plugin.deleteLane(nm), 'danger']];
     items.forEach(it => { if (it[0] === 'div') { pop.createDiv('pb-pop-div'); return; } const b = pop.createEl('button', { text: it[0], cls: it[2] || '' }); b.addEventListener('click', () => { this.closeLaneMenu(); it[1](); }); });
     document.body.appendChild(pop);
     const r = btn.getBoundingClientRect();
@@ -888,7 +984,7 @@ class PieLiveView extends obsidian.ItemView {
     this.closeProfileMenu();
     const pop = document.createElement('div'); pop.className = 'pb-prof-pop'; this._profPop = pop;
     pop.setAttribute('data-theme', this.theme());
-    pop.createEl('div', { cls: 'pb-prof-hd', text: 'Bảng của bạn' });
+    pop.createEl('div', { cls: 'pb-prof-hd', text: tr('Bảng của bạn') });
     const list = pop.createEl('div', { cls: 'pb-prof-list' });
     const active = this.plugin.settings.activeId;
     this.plugin.settings.profiles.forEach(p => {
@@ -900,9 +996,9 @@ class PieLiveView extends obsidian.ItemView {
     });
     pop.createDiv('pb-prof-div');
     const foot = pop.createEl('div', { cls: 'pb-prof-foot' });
-    const add = foot.createEl('button', { cls: 'pb-prof-act' }); add.createEl('span', { cls: 'pb-prof-ai' }).innerHTML = I.plus; add.appendText('Thêm bảng mới');
+    const add = foot.createEl('button', { cls: 'pb-prof-act' }); add.createEl('span', { cls: 'pb-prof-ai' }).innerHTML = I.plus; add.appendText(tr('Thêm bảng mới'));
     add.addEventListener('click', () => { this.closeProfileMenu(); this.plugin.addProfile(); });
-    const mng = foot.createEl('button', { cls: 'pb-prof-act' }); mng.createEl('span', { cls: 'pb-prof-ai' }).innerHTML = I.gear; mng.appendText('Quản lý bảng');
+    const mng = foot.createEl('button', { cls: 'pb-prof-act' }); mng.createEl('span', { cls: 'pb-prof-ai' }).innerHTML = I.gear; mng.appendText(tr('Quản lý bảng'));
     mng.addEventListener('click', () => { this.closeProfileMenu(); this.openProfileManager(); });
     document.body.appendChild(pop);
     const r = btn.getBoundingClientRect();
@@ -934,12 +1030,12 @@ class PieLiveView extends obsidian.ItemView {
     const close = dh.createEl('button', { cls: 'dw-close' }); close.innerHTML = I.x; close.addEventListener('click', () => this.closeDrawer());
     // when
     const when = scroll.createEl('div', { cls: 'dw-when' }); when.innerHTML = I.clock;
-    let w = t.date ? fmtDateFull(t.date) : 'Chưa có ngày'; if (t.s && t.e) w += ' · ' + t.s + ' → ' + t.e;
+    let w = t.date ? fmtDateFull(t.date) : tr('Chưa có ngày'); if (t.s && t.e) w += ' · ' + t.s + ' → ' + t.e;
     when.createEl('span', { text: w });
-    const badge = when.createEl('span', { cls: 'badge', text: S.lab }); badge.style.background = 'color-mix(in srgb,' + S.c + ' 18%,transparent)'; badge.style.color = S.c;
+    const badge = when.createEl('span', { cls: 'badge', text: tr(S.lab) }); badge.style.background = 'color-mix(in srgb,' + S.c + ' 18%,transparent)'; badge.style.color = S.c;
     // dự án (project cha)
     const secPr = scroll.createEl('div', { cls: 'dw-sec' });
-    secPr.createEl('div', { cls: 'eyebrow', text: 'Dự án' });
+    secPr.createEl('div', { cls: 'eyebrow', text: tr('Dự án') });
     if (t.project) {
       const nm = t.project.replace(/^\[\[|\]\]$/g, '');
       const disp = (nm.split('|').pop() || nm).split('/').pop();
@@ -947,31 +1043,31 @@ class PieLiveView extends obsidian.ItemView {
       const ico = row.createEl('span', { cls: 'dw-link-ic' }); ico.innerHTML = I.folder;
       const a = row.createEl('a', { cls: 'dw-link-a', text: disp });
       a.addEventListener('click', ev => { ev.preventDefault(); this.app.workspace.openLinkText(nm, this.plugin.taskFile ? this.plugin.taskFile.path : '', false); });
-      const rx = row.createEl('button', { cls: 'pb-x', attr: { title: 'Gỡ khỏi dự án' } }); rx.innerHTML = I.x;
+      const rx = row.createEl('button', { cls: 'pb-x', attr: { title: tr('Gỡ khỏi dự án') } }); rx.innerHTML = I.x;
       rx.addEventListener('click', ev => { ev.stopPropagation(); this.plugin.removeProject(t); });
     } else {
-      const addP = secPr.createEl('div', { cls: 'add-more' }); addP.innerHTML = I.folder; addP.appendText('Gắn vào dự án');
+      const addP = secPr.createEl('div', { cls: 'add-more' }); addP.innerHTML = I.folder; addP.appendText(tr('Gắn vào dự án'));
       addP.addEventListener('click', () => this.plugin.pickProject(t));
     }
     // time editors
-    const secT = scroll.createEl('div', { cls: 'dw-sec' }); secT.createEl('div', { cls: 'eyebrow', text: 'Thời gian' });
+    const secT = scroll.createEl('div', { cls: 'dw-sec' }); secT.createEl('div', { cls: 'eyebrow', text: tr('Thời gian') });
     const grid = secT.createEl('div', { cls: 'dt-grid' });
     const mkField = (lab, type, val, on) => { const f = grid.createEl('label', { cls: 'dt-field' }); f.createEl('span', { text: lab }); const inp = f.createEl('input', { cls: 'dt-in', attr: { type } }); if (val) inp.value = val; inp.addEventListener('change', () => on(inp.value)); return inp; };
-    mkField('Ngày', 'date', t.date || '', v => this.plugin.setDate(t, v));
-    mkField('Bắt đầu', 'time', t.s || '', v => this.plugin.setTime(t, v, t.e || v));
-    mkField('Kết thúc', 'time', t.e || '', v => this.plugin.setTime(t, t.s || v, v));
+    mkField(tr('Ngày'), 'date', t.date || '', v => this.plugin.setDate(t, v));
+    mkField(tr('Bắt đầu'), 'time', t.s || '', v => this.plugin.setTime(t, v, t.e || v));
+    mkField(tr('Kết thúc'), 'time', t.e || '', v => this.plugin.setTime(t, t.s || v, v));
     // status
     const active = this.activeStatus(t);
-    const secS = scroll.createEl('div', { cls: 'dw-sec' }); secS.createEl('div', { cls: 'eyebrow', text: 'Trạng thái' });
+    const secS = scroll.createEl('div', { cls: 'dw-sec' }); secS.createEl('div', { cls: 'eyebrow', text: tr('Trạng thái') });
     const stSel = secS.createEl('div', { cls: 'st-select' });
-    SETTABLE.forEach(k => { const o = stSel.createEl('div', { cls: 'st-opt' + (active === k ? ' on' : ''), attr: { role: 'button', tabindex: '0' } }); o.style.setProperty('--oc', STATES[k].c); o.innerHTML = SI[k] || SI.dot; o.appendText(STATES[k].lab); o.addEventListener('click', () => this.plugin.setStatus(t, k)); });
+    SETTABLE.forEach(k => { const o = stSel.createEl('div', { cls: 'st-opt' + (active === k ? ' on' : ''), attr: { role: 'button', tabindex: '0' } }); o.style.setProperty('--oc', STATES[k].c); o.innerHTML = SI[k] || SI.dot; o.appendText(tr(STATES[k].lab)); o.addEventListener('click', () => this.plugin.setStatus(t, k)); });
     // priority
-    const secP = scroll.createEl('div', { cls: 'dw-sec' }); secP.createEl('div', { cls: 'eyebrow', text: 'Độ ưu tiên' });
+    const secP = scroll.createEl('div', { cls: 'dw-sec' }); secP.createEl('div', { cls: 'eyebrow', text: tr('Độ ưu tiên') });
     const pSel = secP.createEl('div', { cls: 'st-select' });
-    [['high', t.pri], ['normal', !t.pri]].forEach(([k, on]) => { const o = pSel.createEl('div', { cls: 'st-opt' + (on ? ' on' : ''), attr: { role: 'button' }, text: PRI[k].lab }); o.style.setProperty('--oc', PRI[k].c); o.addEventListener('click', () => this.plugin.setPriority(t, k === 'high')); });
+    [['high', t.pri], ['normal', !t.pri]].forEach(([k, on]) => { const o = pSel.createEl('div', { cls: 'st-opt' + (on ? ' on' : ''), attr: { role: 'button' }, text: tr(PRI[k].lab) }); o.style.setProperty('--oc', PRI[k].c); o.addEventListener('click', () => this.plugin.setPriority(t, k === 'high')); });
     // move lane (thay cho kéo-thả trên mobile)
     const secM = scroll.createEl('div', { cls: 'dw-sec' });
-    secM.createEl('div', { cls: 'eyebrow', text: 'Chuyển lane' });
+    secM.createEl('div', { cls: 'eyebrow', text: tr('Chuyển lane') });
     const laneSel = secM.createEl('div', { cls: 'st-select' });
     (this.plugin.taskData.lanes || []).forEach(laneRaw => {
       const nm = laneName(laneRaw); const on = nm === t.laneName;
@@ -983,39 +1079,39 @@ class PieLiveView extends obsidian.ItemView {
     const secA = scroll.createEl('div', { cls: 'dw-sec' });
     const eyA = secA.createEl('div', { cls: 'eyebrow' }); eyA.appendText('Giao cho · ' + t.laneName);
     const owners = ownersOf(t);
-    owners.forEach(o => { const g = secA.createEl('div', { cls: 'guest' }); avEl(g, o, 'av2'); const gt = g.createEl('div'); gt.createEl('div', { cls: 'nm', text: o }); gt.createEl('div', { cls: 'rl', text: 'Phụ trách' }); const gx = g.createEl('button', { cls: 'pb-x', attr: { title: 'Gỡ người này' } }); gx.innerHTML = I.x; gx.addEventListener('click', () => this.plugin.removeMember(t, o)); });
-    const addm = secA.createEl('div', { cls: 'add-more' }); addm.innerHTML = I.userPlus; addm.appendText('Thêm người');
+    owners.forEach(o => { const g = secA.createEl('div', { cls: 'guest' }); avEl(g, o, 'av2'); const gt = g.createEl('div'); gt.createEl('div', { cls: 'nm', text: o }); gt.createEl('div', { cls: 'rl', text: tr('Phụ trách') }); const gx = g.createEl('button', { cls: 'pb-x', attr: { title: tr('Gỡ người này') } }); gx.innerHTML = I.x; gx.addEventListener('click', () => this.plugin.removeMember(t, o)); });
+    const addm = secA.createEl('div', { cls: 'add-more' }); addm.innerHTML = I.userPlus; addm.appendText(tr('Thêm người'));
     addm.addEventListener('click', () => this.plugin.addMember(t));
     // checklist
     const secC = scroll.createEl('div', { cls: 'dw-sec' });
     const doneN = t.check.filter(x => x[1]).length;
-    secC.createEl('div', { cls: 'eyebrow', text: 'Việc kế tiếp · ' + doneN + '/' + t.check.length });
-    t.check.forEach((x, i) => { const ci = secC.createEl('div', { cls: 'check-item' + (x[1] ? ' ok' : '') }); const box = ci.createEl('span', { cls: 'check-box' }); box.innerHTML = I.check; ci.createEl('span', { cls: 'ci-text', text: x[0] }); const cx = ci.createEl('button', { cls: 'pb-x', attr: { title: 'Xoá bước' } }); cx.innerHTML = I.x; cx.addEventListener('click', ev => { ev.stopPropagation(); this.plugin.deleteStep(t, i); }); ci.addEventListener('click', () => this.plugin.toggleCheck(t, i)); });
+    secC.createEl('div', { cls: 'eyebrow', text: tr('Việc kế tiếp · ') + doneN + '/' + t.check.length });
+    t.check.forEach((x, i) => { const ci = secC.createEl('div', { cls: 'check-item' + (x[1] ? ' ok' : '') }); const box = ci.createEl('span', { cls: 'check-box' }); box.innerHTML = I.check; ci.createEl('span', { cls: 'ci-text', text: x[0] }); const cx = ci.createEl('button', { cls: 'pb-x', attr: { title: tr('Xoá bước') } }); cx.innerHTML = I.x; cx.addEventListener('click', ev => { ev.stopPropagation(); this.plugin.deleteStep(t, i); }); ci.addEventListener('click', () => this.plugin.toggleCheck(t, i)); });
     if (t.next && !t.check.length) secC.createEl('p', { cls: 'dw-desc', text: t.next });
-    const addStep = secC.createEl('div', { cls: 'add-more' }); addStep.innerHTML = I.plus; addStep.appendText('Thêm bước');
+    const addStep = secC.createEl('div', { cls: 'add-more' }); addStep.innerHTML = I.plus; addStep.appendText(tr('Thêm bước'));
     addStep.addEventListener('click', () => this.plugin.addStep(t));
     // tài liệu / file liên quan (output)
     const secO = scroll.createEl('div', { cls: 'dw-sec' });
-    secO.createEl('div', { cls: 'eyebrow', text: 'Tài liệu · file liên quan' });
+    secO.createEl('div', { cls: 'eyebrow', text: tr('Tài liệu · file liên quan') });
     (t.outputs || []).forEach(o => {
       const nm = o.replace(/^\[\[|\]\]$/g, '');
       const row = secO.createEl('div', { cls: 'dw-link' });
       const ico = row.createEl('span', { cls: 'dw-link-ic' }); ico.innerHTML = I.link;
       const a = row.createEl('a', { cls: 'dw-link-a', text: nm });
       a.addEventListener('click', ev => { ev.preventDefault(); this.app.workspace.openLinkText(nm, this.plugin.taskFile ? this.plugin.taskFile.path : '', false); });
-      const rx = row.createEl('button', { cls: 'pb-x', attr: { title: 'Gỡ liên kết' } }); rx.innerHTML = I.x;
+      const rx = row.createEl('button', { cls: 'pb-x', attr: { title: tr('Gỡ liên kết') } }); rx.innerHTML = I.x;
       rx.addEventListener('click', ev => { ev.stopPropagation(); this.plugin.removeOutput(t, nm); });
     });
-    const addLink = secO.createEl('div', { cls: 'add-more' }); addLink.innerHTML = I.plus; addLink.appendText('Gắn note/file');
+    const addLink = secO.createEl('div', { cls: 'add-more' }); addLink.innerHTML = I.plus; addLink.appendText(tr('Gắn note/file'));
     addLink.addEventListener('click', () => this.plugin.attachOutput(t));
-    if (t.id) { const secId = scroll.createEl('div', { cls: 'dw-sec' }); secId.createEl('div', { cls: 'eyebrow', text: 'Mã việc 1Office' }); secId.createEl('p', { cls: 'dw-desc mono', text: '#' + t.id }); }
+    if (t.id) { const secId = scroll.createEl('div', { cls: 'dw-sec' }); secId.createEl('div', { cls: 'eyebrow', text: tr('Mã việc 1Office') }); secId.createEl('p', { cls: 'dw-desc mono', text: '#' + t.id }); }
     // actions
     const acts = dw.createEl('div', { cls: 'dw-actions' });
     const mk = (cls, ic, lab, fn) => { const b = acts.createEl('button', { cls: 'act ' + cls }); b.innerHTML = ic; b.appendText(' ' + lab); b.addEventListener('click', fn); };
-    mk('primary', I.check, t.done ? 'Bỏ xong' : 'Đánh dấu xong', () => this.plugin.toggleTask(t));
-    mk('', I.copy, 'Nhân bản', () => this.plugin.duplicateTask(t));
-    mk('', SI.cancel, 'Huỷ việc', () => this.plugin.setStatus(t, 'cancel'));
-    mk('danger', I.trash, 'Xoá việc', () => this.plugin.deleteTask(t));
+    mk('primary', I.check, t.done ? tr('Bỏ xong') : tr('Đánh dấu xong'), () => this.plugin.toggleTask(t));
+    mk('', I.copy, tr('Nhân bản'), () => this.plugin.duplicateTask(t));
+    mk('', SI.cancel, tr('Huỷ việc'), () => this.plugin.setStatus(t, 'cancel'));
+    mk('danger', I.trash, tr('Xoá việc'), () => this.plugin.deleteTask(t));
     this.root.addClass('dw-open');
   }
   closeDrawer() { this.selId = null; if (this.root) this.root.removeClass('dw-open'); if (this.drawerEl) this.drawerEl.empty(); this.render(); }
@@ -1037,15 +1133,15 @@ class PieLiveView extends obsidian.ItemView {
   renderViewFilter(pane) {
     const bar = pane.createEl('div', { cls: 'pb-vfbar' });
     const os = bar.createEl('select', { cls: 'pb-vfsel' });
-    os.createEl('option', { text: 'Tất cả người', value: 'all' });
+    os.createEl('option', { text: tr('Tất cả người'), value: 'all' });
     this.allOwners().forEach(o => os.createEl('option', { text: o, value: o }));
     os.value = this.fltOwner; os.addEventListener('change', () => { this.fltOwner = os.value; this.render(); });
     const ss = bar.createEl('select', { cls: 'pb-vfsel' });
-    ss.createEl('option', { text: 'Mọi trạng thái', value: 'all' });
+    ss.createEl('option', { text: tr('Mọi trạng thái'), value: 'all' });
     ['doing', 'review', 'error', 'over', 'completed', 'pending', 'notdone', 'fail', 'pause', 'cancel', 'expected', 'closed', 'open'].forEach(k => ss.createEl('option', { text: STATES[k].lab, value: k }));
     ss.value = this.fltStatus; ss.addEventListener('change', () => { this.fltStatus = ss.value; this.render(); });
     const ps = bar.createEl('select', { cls: 'pb-vfsel' });
-    [['all', 'Mọi lúc'], ['today', 'Hôm nay'], ['week', 'Tuần này'], ['month', 'Tháng này'], ['range', 'Khoảng tùy chọn']].forEach(([v, l]) => ps.createEl('option', { text: l, value: v }));
+    [['all', tr('Mọi lúc')], ['today', tr('Hôm nay')], ['week', tr('Tuần này')], ['month', tr('Tháng này')], ['range', tr('Khoảng tùy chọn')]].forEach(([v, l]) => ps.createEl('option', { text: l, value: v }));
     ps.value = this.fltPeriod; ps.addEventListener('change', () => { this.fltPeriod = ps.value; this.render(); });
     if (this.fltPeriod === 'range') {
       const fromI = bar.createEl('input', { cls: 'pb-vfsel pb-vfdate', attr: { type: 'date' } });
@@ -1059,11 +1155,11 @@ class PieLiveView extends obsidian.ItemView {
   }
   renderList(main) {
     const pane = main.createEl('div', { cls: 'pb-viewpane' });
-    pane.createEl('div', { cls: 'pb-vh', text: 'Danh sách công việc' });
+    pane.createEl('div', { cls: 'pb-vh', text: tr('Danh sách công việc') });
     this.renderViewFilter(pane);
     const rows = this.filteredForView().slice().sort((a, b) => ((a.date || '9999') + (a.s || '')).localeCompare((b.date || '9999') + (b.s || '')));
     const head = pane.createEl('div', { cls: 'pb-lhead' });
-    ['', 'Việc', 'Lane', 'Người', 'Hạn', 'Trạng thái'].forEach(h => head.createEl('span', { text: h }));
+    ['', tr('Việc'), tr('Lane'), tr('Người'), tr('Hạn'), tr('Trạng thái')].forEach(h => head.createEl('span', { text: h }));
     const lst = pane.createEl('div', { cls: 'pb-lst' });
     rows.forEach(t => {
       const st = this.cardState(t), S = STATES[st];
@@ -1073,21 +1169,21 @@ class PieLiveView extends obsidian.ItemView {
       row.createEl('span', { cls: 'pb-lmeta', text: t.laneName });
       const as = row.createEl('span', { cls: 'pb-lassignee' }); const owners = ownersOf(t); if (owners.length) { avEl(as, owners[0]); as.createEl('span', { cls: 'anm', text: owners[0] + (owners.length > 1 ? ' +' + (owners.length - 1) : '') }); } else as.createEl('span', { cls: 'anm', text: '—' });
       row.createEl('span', { cls: 'pb-lmeta', text: (t.date ? fmtDate(t.date) : '—') + (t.s ? ' ' + t.s : '') });
-      const chip = row.createEl('span', { cls: 'pb-lchip', text: S.lab }); chip.style.color = S.c; chip.style.background = 'color-mix(in srgb,' + S.c + ' 15%,transparent)';
+      const chip = row.createEl('span', { cls: 'pb-lchip', text: tr(S.lab) }); chip.style.color = S.c; chip.style.background = 'color-mix(in srgb,' + S.c + ' 15%,transparent)';
       row.addEventListener('click', () => this.openCard(t));
     });
-    if (!rows.length) pane.createEl('div', { cls: 'pb-empty', text: 'Không có việc khớp bộ lọc.' });
+    if (!rows.length) pane.createEl('div', { cls: 'pb-empty', text: tr('Không có việc khớp bộ lọc.') });
   }
 
   // ---------- CALENDAR ----------
   renderCalendar(main) {
     const pane = main.createEl('div', { cls: 'pb-viewpane' });
     const p = this.calAnchor.split('-'); const y = +p[0], mo = +p[1];
-    const monthName = 'Tháng ' + mo + '/' + y;
-    const vh = pane.createEl('div', { cls: 'pb-vh' }); vh.setText('Lịch — ' + monthName);
+    const monthName = tr('Tháng ') + mo + '/' + y;
+    const vh = pane.createEl('div', { cls: 'pb-vh' }); vh.setText(tr('Lịch — ') + monthName);
     const nav = pane.createEl('div', { cls: 'pb-vfbar' });
     const prev = nav.createEl('button', { cls: 'pb-vfnav' }); prev.innerHTML = I.chevL; prev.addEventListener('click', () => { let m = mo - 1, yy = y; if (m < 1) { m = 12; yy--; } this.calAnchor = yy + '-' + String(m).padStart(2, '0') + '-01'; this.render(); });
-    const tdb = nav.createEl('button', { cls: 'pb-vftoday', text: 'Hôm nay' }); tdb.addEventListener('click', () => { this.calAnchor = today().slice(0, 7) + '-01'; this.render(); });
+    const tdb = nav.createEl('button', { cls: 'pb-vftoday', text: tr('Hôm nay') }); tdb.addEventListener('click', () => { this.calAnchor = today().slice(0, 7) + '-01'; this.render(); });
     const next = nav.createEl('button', { cls: 'pb-vfnav' }); next.innerHTML = I.chevR; next.addEventListener('click', () => { let m = mo + 1, yy = y; if (m > 12) { m = 1; yy++; } this.calAnchor = yy + '-' + String(m).padStart(2, '0') + '-01'; this.render(); });
     const grid = pane.createEl('div', { cls: 'pb-calgrid' });
     ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].forEach(d => grid.createEl('div', { cls: 'pb-caldow', text: d }));
@@ -1100,14 +1196,14 @@ class PieLiveView extends obsidian.ItemView {
       cell.createEl('div', { cls: 'pb-caldate', text: String(d) });
       const dayTasks = tasks.filter(t => t.date === ds);
       dayTasks.slice(0, 3).forEach(t => { const st = this.cardState(t), S = STATES[st]; const pill = cell.createEl('div', { cls: 'pb-calpill', text: t.title }); pill.style.background = S.c; pill.addEventListener('click', () => this.openCard(t)); });
-      if (dayTasks.length > 3) cell.createEl('div', { cls: 'pb-calmore', text: '+' + (dayTasks.length - 3) + ' nữa' });
+      if (dayTasks.length > 3) cell.createEl('div', { cls: 'pb-calmore', text: '+' + (dayTasks.length - 3) + tr(' nữa') });
     }
   }
 
   // ---------- DASHBOARD ----------
   renderDashboard(main) {
     const pane = main.createEl('div', { cls: 'pb-viewpane' });
-    pane.createEl('div', { cls: 'pb-vh', text: 'Thống kê' });
+    pane.createEl('div', { cls: 'pb-vh', text: tr('Thống kê') });
     this.renderViewFilter(pane);
     const tasks = this.filteredForView();
     const tot=tasks.length, doing=tasks.filter(t=>t.status==='doing'&&!t.over&&!t.done).length, over=tasks.filter(t=>t.over).length, done=tasks.filter(t=>t.done||t.status==='completed').length;
@@ -1119,12 +1215,12 @@ class PieLiveView extends obsidian.ItemView {
     this.barsPanel(panels, 'Theo lane', Object.entries(byLane).sort((a, b) => b[1] - a[1]), (k, i) => TONE[LANE_TONES[i % LANE_TONES.length]]);
     // by person
     const byP = {}; tasks.forEach(t => ownersOf(t).forEach(o => byP[o] = (byP[o] || 0) + 1));
-    this.barsPanel(panels, 'Khối lượng theo người', Object.entries(byP).sort((a, b) => b[1] - a[1]).slice(0, 8), k => TONE[ownerTone(k)]);
+    this.barsPanel(panels, tr('Khối lượng theo người'), Object.entries(byP).sort((a, b) => b[1] - a[1]).slice(0, 8), k => TONE[ownerTone(k)]);
     // upcoming/overdue
-    const wide = pane.createEl('div', { cls: 'pb-dpanel wide' }); wide.createEl('h4', { text: 'Sắp tới & quá hạn' });
+    const wide = pane.createEl('div', { cls: 'pb-dpanel wide' }); wide.createEl('h4', { text: tr('Sắp tới & quá hạn') });
     tasks.filter(t => !t.done).sort((a, b) => (a.over === b.over ? 0 : a.over ? -1 : 1) || ((a.date || '9999').localeCompare(b.date || '9999'))).slice(0, 8).forEach(t => {
       const st = this.cardState(t), S = STATES[st]; const row = wide.createEl('div', { cls: 'pb-mlrow' }); const dot = row.createEl('span', { cls: 'pb-ldot' }); dot.style.background = S.c;
-      row.createEl('span', { cls: 'mltitle', text: t.title }); const dl = row.createEl('span', { cls: 'mldate', text: t.over ? 'Quá hạn' : (t.date ? fmtDate(t.date) : '—') }); dl.style.color = t.over ? '#C0392B' : 'var(--text-muted)';
+      row.createEl('span', { cls: 'mltitle', text: t.title }); const dl = row.createEl('span', { cls: 'mldate', text: t.over ? tr('Quá hạn') : (t.date ? fmtDate(t.date) : '—') }); dl.style.color = t.over ? '#C0392B' : 'var(--text-muted)';
       row.addEventListener('click', () => this.openCard(t));
     });
   }
@@ -1132,7 +1228,7 @@ class PieLiveView extends obsidian.ItemView {
     const panel = parent.createEl('div', { cls: 'pb-dpanel' }); panel.createEl('h4', { text: title });
     const max = Math.max(1, ...entries.map(e => e[1]));
     entries.forEach(([k, v], i) => { const row = panel.createEl('div', { cls: 'pb-bar-row' }); row.createEl('span', { cls: 'bl', text: k }); const track = row.createEl('div', { cls: 'pb-bar-track' }); const fill = track.createEl('div', { cls: 'pb-bar-fill' }); fill.style.width = (v / max * 100) + '%'; fill.style.background = colorFn(k, i); row.createEl('span', { cls: 'bv', text: String(v) }); });
-    if (!entries.length) panel.createEl('div', { cls: 'pb-col-empty', text: 'Không có dữ liệu' });
+    if (!entries.length) panel.createEl('div', { cls: 'pb-col-empty', text: tr('Không có dữ liệu') });
   }
 }
 
@@ -1168,14 +1264,14 @@ class PromptModal extends obsidian.Modal {
       window.setTimeout(() => { inp.focus(); inp.select(); }, 0);
     }
     const btns = contentEl.createDiv({ attr: { style: 'display:flex;gap:8px;justify-content:flex-end;margin-top:16px;' } });
-    btns.createEl('button', { text: 'Huỷ' }).addEventListener('click', () => this.close());
+    btns.createEl('button', { text: tr('Huỷ') }).addEventListener('click', () => this.close());
     btns.createEl('button', { text: this.opts.okText || 'OK', cls: 'mod-cta' }).addEventListener('click', () => this.submit(this.inp ? this.inp.value : true));
   }
   submit(v) { this.done = true; this.resolve(this.opts.type === 'confirm' ? true : (typeof v === 'string' ? v.trim() : v)); this.close(); }
   onClose() { this.contentEl.empty(); if (!this.done) this.resolve(this.opts.type === 'confirm' ? false : null); }
 }
 function askText(app, title, value) { return new Promise(res => new PromptModal(app, { title, value, type: 'text' }, res).open()); }
-function askConfirm(app, message, title) { return new Promise(res => new PromptModal(app, { title: title || 'Xác nhận', message, type: 'confirm', okText: 'Đồng ý' }, res).open()); }
+function askConfirm(app, message, title) { return new Promise(res => new PromptModal(app, { title: title || tr('Xác nhận'), message, type: 'confirm', okText: tr('Đồng ý') }, res).open()); }
 
 // ---------- modal thêm/sửa lane: nhập tên + chọn icon ----------
 class LaneModal extends obsidian.Modal {
@@ -1183,7 +1279,7 @@ class LaneModal extends obsidian.Modal {
   onOpen() {
     const { contentEl, titleEl } = this;
     titleEl.setText(this.opts.title || 'Lane');
-    contentEl.createEl('div', { text: 'Tên lane', attr: { style: 'font-size:12px;opacity:.7;margin-bottom:4px;' } });
+    contentEl.createEl('div', { text: tr('Tên lane'), attr: { style: 'font-size:12px;opacity:.7;margin-bottom:4px;' } });
     const inp = contentEl.createEl('input', { attr: { type: 'text', placeholder: 'vd: Đang chờ duyệt' } });
     inp.style.cssText = 'width:100%;margin-bottom:15px;';
     inp.value = this.opts.name || '';
@@ -1192,8 +1288,8 @@ class LaneModal extends obsidian.Modal {
     contentEl.createEl('div', { text: 'Icon', attr: { style: 'font-size:12px;opacity:.7;margin-bottom:6px;' } });
     const grid = contentEl.createDiv({ cls: 'pt-iconpick' });
     this._btns = []; this._chips = [];
-    const auto = grid.createEl('button', { cls: 'pt-iconbtn', attr: { title: 'Tự động theo tên lane', type: 'button' } });
-    auto.createEl('span', { cls: 'pt-iconchip auto', text: 'Tự' }); auto.dataset.emoji = '';
+    const auto = grid.createEl('button', { cls: 'pt-iconbtn', attr: { title: tr('Tự động theo tên lane'), type: 'button' } });
+    auto.createEl('span', { cls: 'pt-iconchip auto', text: tr('Tự') }); auto.dataset.emoji = '';
     auto.addEventListener('click', () => { this.icon = ''; this._sync(); });
     this._btns.push(auto);
     LANE_ICONS.forEach(it => {
@@ -1203,10 +1299,10 @@ class LaneModal extends obsidian.Modal {
       b.addEventListener('click', () => { this.icon = it.emoji; this._sync(); });
       this._btns.push(b);
     });
-    contentEl.createEl('div', { text: 'Màu', attr: { style: 'font-size:12px;opacity:.7;margin:14px 0 6px;' } });
+    contentEl.createEl('div', { text: tr('Màu'), attr: { style: 'font-size:12px;opacity:.7;margin:14px 0 6px;' } });
     const crow = contentEl.createDiv({ cls: 'pt-colorpick' });
     this._sw = [];
-    const cAuto = crow.createEl('button', { cls: 'pt-swatch auto', text: 'Tự', attr: { title: 'Màu tự động theo vị trí lane', type: 'button' } });
+    const cAuto = crow.createEl('button', { cls: 'pt-swatch auto', text: tr('Tự'), attr: { title: tr('Màu tự động theo vị trí lane'), type: 'button' } });
     cAuto.dataset.color = '';
     cAuto.addEventListener('click', () => { this.color = ''; this._sync(); });
     this._sw.push(cAuto);
@@ -1218,7 +1314,7 @@ class LaneModal extends obsidian.Modal {
     });
     this._sync();
     const btns = contentEl.createDiv({ attr: { style: 'display:flex;gap:8px;justify-content:flex-end;margin-top:18px;' } });
-    btns.createEl('button', { text: 'Huỷ', attr: { type: 'button' } }).addEventListener('click', () => this.close());
+    btns.createEl('button', { text: tr('Huỷ'), attr: { type: 'button' } }).addEventListener('click', () => this.close());
     btns.createEl('button', { text: this.opts.okText || 'OK', cls: 'mod-cta', attr: { type: 'button' } }).addEventListener('click', () => this.submit(this.inp.value));
     window.setTimeout(() => { inp.focus(); inp.select(); }, 0);
   }
@@ -1235,7 +1331,7 @@ function askLane(app, opts) { return new Promise(res => new LaneModal(app, opts,
 
 // ---------- picker chọn người phụ trách từ file nhân sự ----------
 class PeoplePickerModal extends obsidian.SuggestModal {
-  constructor(app, people, onChoose) { super(app); this.people = people; this.onChoose = onChoose; this.setPlaceholder('Gõ để tìm / thêm người phụ trách…'); }
+  constructor(app, people, onChoose) { super(app); this.people = people; this.onChoose = onChoose; this.setPlaceholder(tr('Gõ để tìm / thêm người phụ trách…')); }
   getSuggestions(q) {
     const s = q.trim().toLowerCase();
     const list = this.people.filter(p => p.name.toLowerCase().includes(s));
@@ -1243,7 +1339,7 @@ class PeoplePickerModal extends obsidian.SuggestModal {
     return list;
   }
   renderSuggestion(p, el) {
-    if (p._new) { el.createEl('div', { text: '➕ Thêm "' + p.name + '" (người mới)' }); return; }
+    if (p._new) { el.createEl('div', { text: tr('➕ Thêm "') + p.name + '" (người mới)' }); return; }
     el.createEl('div', { text: p.name });
     if (p.id) el.createEl('small', { text: '1Office #' + p.id, attr: { style: 'opacity:.55; margin-left:6px;' } });
   }
@@ -1252,7 +1348,7 @@ class PeoplePickerModal extends obsidian.SuggestModal {
 
 // ---------- picker chọn note/file trong vault để gắn vào task ----------
 class FileSuggestModal extends obsidian.SuggestModal {
-  constructor(app, onChoose) { super(app); this.onChoose = onChoose; this.setPlaceholder('Gõ để tìm note / file trong vault…'); }
+  constructor(app, onChoose) { super(app); this.onChoose = onChoose; this.setPlaceholder(tr('Gõ để tìm note / file trong vault…')); }
   getSuggestions(q) {
     const s = q.trim().toLowerCase();
     const files = this.app.vault.getFiles();
@@ -1267,7 +1363,7 @@ class FileSuggestModal extends obsidian.SuggestModal {
 }
 
 class ProjectSuggestModal extends obsidian.SuggestModal {
-  constructor(app, onChoose) { super(app); this.onChoose = onChoose; this.setPlaceholder('Chọn dự án (note có subtype / type: project)…'); }
+  constructor(app, onChoose) { super(app); this.onChoose = onChoose; this.setPlaceholder(tr('Chọn dự án (note có subtype / type: project)…')); }
   _projects() {
     const mc = this.app.metadataCache;
     return this.app.vault.getMarkdownFiles().filter(f => {
@@ -1301,26 +1397,26 @@ class ProfileModal extends obsidian.Modal {
     const row = contentEl.createDiv({ attr: { style: 'display:flex;gap:6px;' } });
     const inp = row.createEl('input', { attr: { type: 'text', placeholder: ph } });
     inp.style.cssText = 'flex:1;'; inp.value = val || '';
-    const br = row.createEl('button', { text: 'Chọn…', attr: { type: 'button' } });
+    const br = row.createEl('button', { text: tr('Chọn…'), attr: { type: 'button' } });
     br.addEventListener('click', () => new FileSuggestModal(this.app, f => { inp.value = f.path; }).open());
     return inp;
   }
   onOpen() {
     const { contentEl, titleEl } = this;
-    titleEl.setText(this.opts.title || 'Bảng');
-    contentEl.createEl('div', { text: 'Tên bảng', attr: { style: 'font-size:12px;opacity:.7;margin-bottom:4px;' } });
+    titleEl.setText(this.opts.title || tr('Bảng'));
+    contentEl.createEl('div', { text: tr('Tên bảng'), attr: { style: 'font-size:12px;opacity:.7;margin-bottom:4px;' } });
     const nameRow = contentEl.createDiv({ attr: { style: 'display:flex;gap:10px;align-items:center;margin-bottom:6px;' } });
-    const prev = nameRow.createEl('span', { cls: 'pb-brand pb-profchip', attr: { title: 'Xem trước' } }); prev.style.margin = '0'; prev.style.flex = '0 0 auto';
-    const inp = nameRow.createEl('input', { attr: { type: 'text', placeholder: 'vd: Dự án Website' } });
+    const prev = nameRow.createEl('span', { cls: 'pb-brand pb-profchip', attr: { title: tr('Xem trước') } }); prev.style.margin = '0'; prev.style.flex = '0 0 auto';
+    const inp = nameRow.createEl('input', { attr: { type: 'text', placeholder: tr('vd: Dự án Website') } });
     inp.style.cssText = 'flex:1;'; inp.value = this.opts.name || '';
     this.inp = inp;
     const updPrev = () => paintProfChip(prev, { name: inp.value, color: this.color, iconType: this.iconType, icon: this.icon }, this.app);
     inp.addEventListener('input', updPrev);
 
-    contentEl.createEl('div', { text: 'Biểu tượng (để trống = chữ cái đầu tên)', attr: { style: 'font-size:12px;opacity:.7;margin:14px 0 6px;' } });
+    contentEl.createEl('div', { text: tr('Biểu tượng (để trống = chữ cái đầu tên)'), attr: { style: 'font-size:12px;opacity:.7;margin:14px 0 6px;' } });
     const irow = contentEl.createDiv({ cls: 'pt-iconpick' });
     this._iconBtns = [];
-    const letBtn = irow.createEl('button', { cls: 'pt-iconbtn', attr: { title: 'Chữ cái đầu tên', type: 'button' } });
+    const letBtn = irow.createEl('button', { cls: 'pt-iconbtn', attr: { title: tr('Chữ cái đầu tên'), type: 'button' } });
     letBtn.createEl('span', { cls: 'pt-iconchip pt-iconletter', text: 'Aa' });
     letBtn.addEventListener('click', () => { this.iconType = 'letter'; this.icon = ''; this._syncIcon(); updPrev(); });
     this._iconBtns.push({ el: letBtn, is: () => this.iconType === 'letter' });
@@ -1332,15 +1428,15 @@ class ProfileModal extends obsidian.Modal {
     });
     const imgRow = contentEl.createDiv({ attr: { style: 'display:flex;gap:6px;margin-top:8px;' } });
     const pickImg = imgRow.createEl('button', { cls: 'pt-imgbtn', attr: { type: 'button' } });
-    pickImg.innerHTML = I.image; pickImg.appendText(' Chọn ảnh từ vault…');
+    pickImg.innerHTML = I.image; pickImg.appendText(tr(' Chọn ảnh từ vault…'));
     pickImg.addEventListener('click', () => new FileSuggestModal(this.app, f => {
         if (IMG_RE.test(f.path)) { this.iconType = 'image'; this.icon = f.path; this._syncIcon(); updPrev(); }
-        else new obsidian.Notice('Hãy chọn file ảnh (png/jpg/webp/svg…).');
+        else new obsidian.Notice(tr('Hãy chọn file ảnh (png/jpg/webp/svg…).'));
       }).open());
-    imgRow.createEl('button', { text: 'Bỏ ảnh', attr: { type: 'button' } })
+    imgRow.createEl('button', { text: tr('Bỏ ảnh'), attr: { type: 'button' } })
       .addEventListener('click', () => { if (this.iconType === 'image') { this.iconType = 'letter'; this.icon = ''; this._syncIcon(); updPrev(); } });
 
-    contentEl.createEl('div', { text: 'Màu nền', attr: { style: 'font-size:12px;opacity:.7;margin:14px 0 6px;' } });
+    contentEl.createEl('div', { text: tr('Màu nền'), attr: { style: 'font-size:12px;opacity:.7;margin:14px 0 6px;' } });
     const crow = contentEl.createDiv({ cls: 'pt-colorpick' });
     this._sw = [];
     LANE_COLORS.forEach(hex => {
@@ -1349,11 +1445,11 @@ class ProfileModal extends obsidian.Modal {
       s.addEventListener('click', () => { this.color = hex; this._sync(); updPrev(); });
       this._sw.push(s);
     });
-    this.tp = this._fileRow('File công việc (bắt buộc)', this.opts.taskPath || '', 'vd: PROJECTS/task1.md');
-    this.pp = this._fileRow('File nhân sự (tuỳ chọn — để trống dùng mặc định chung)', this.opts.peoplePath || '', 'vd: People.md');
+    this.tp = this._fileRow(tr('File công việc (bắt buộc)'), this.opts.taskPath || '', tr('vd: PROJECTS/task1.md'));
+    this.pp = this._fileRow(tr('File nhân sự (tuỳ chọn — để trống dùng mặc định chung)'), this.opts.peoplePath || '', tr('vd: People.md'));
     this._sync(); this._syncIcon(); updPrev();
     const btns = contentEl.createDiv({ attr: { style: 'display:flex;gap:8px;justify-content:flex-end;margin-top:18px;' } });
-    btns.createEl('button', { text: 'Huỷ', attr: { type: 'button' } }).addEventListener('click', () => this.close());
+    btns.createEl('button', { text: tr('Huỷ'), attr: { type: 'button' } }).addEventListener('click', () => this.close());
     btns.createEl('button', { text: this.opts.okText || 'OK', cls: 'mod-cta', attr: { type: 'button' } }).addEventListener('click', () => this.submit());
     window.setTimeout(() => { inp.focus(); inp.select(); }, 0);
   }
@@ -1373,7 +1469,7 @@ function askProfile(app, opts) { return new Promise(res => new ProfileModal(app,
 // ---------- modal quản lý danh sách bảng (sửa/xoá/đổi thứ tự) ----------
 class ProfileManagerModal extends obsidian.Modal {
   constructor(app, plugin) { super(app); this.plugin = plugin; }
-  onOpen() { this.titleEl.setText('Quản lý bảng'); this.render(); }
+  onOpen() { this.titleEl.setText(tr('Quản lý bảng')); this.render(); }
   render() {
     const c = this.contentEl; c.empty(); c.addClass('pt-mgr');
     const list = c.createDiv({ cls: 'pt-plist' });
@@ -1382,17 +1478,17 @@ class ProfileManagerModal extends obsidian.Modal {
       const row = list.createDiv({ cls: 'pt-prow' });
       const sw = row.createEl('span', { cls: 'pb-prof-sw' }); paintProfChip(sw, p, this.plugin.app);
       const info = row.createDiv({ cls: 'pt-pinfo' });
-      info.createEl('div', { cls: 'pt-pname', text: p.name + (p.id === this.plugin.settings.activeId ? ' · đang mở' : '') });
+      info.createEl('div', { cls: 'pt-pname', text: p.name + (p.id === this.plugin.settings.activeId ? tr(' · đang mở') : '') });
       info.createEl('small', { text: p.taskPath, attr: { style: 'opacity:.55;' } });
       const acts = row.createDiv({ cls: 'pt-pacts' });
-      const up = acts.createEl('button', { text: '↑', attr: { type: 'button', title: 'Lên' } }); up.disabled = i === 0;
+      const up = acts.createEl('button', { text: '↑', attr: { type: 'button', title: tr('Lên') } }); up.disabled = i === 0;
       up.addEventListener('click', async () => { await this.plugin.moveProfile(p.id, -1); this.render(); });
-      const dn = acts.createEl('button', { text: '↓', attr: { type: 'button', title: 'Xuống' } }); dn.disabled = i === profs.length - 1;
+      const dn = acts.createEl('button', { text: '↓', attr: { type: 'button', title: tr('Xuống') } }); dn.disabled = i === profs.length - 1;
       dn.addEventListener('click', async () => { await this.plugin.moveProfile(p.id, 1); this.render(); });
-      acts.createEl('button', { text: 'Sửa', attr: { type: 'button' } }).addEventListener('click', async () => { await this.plugin.editProfile(p.id); this.render(); });
-      acts.createEl('button', { text: 'Xoá', cls: 'danger', attr: { type: 'button' } }).addEventListener('click', async () => { await this.plugin.deleteProfile(p.id); this.render(); });
+      acts.createEl('button', { text: tr('Sửa'), attr: { type: 'button' } }).addEventListener('click', async () => { await this.plugin.editProfile(p.id); this.render(); });
+      acts.createEl('button', { text: tr('Xoá'), cls: 'danger', attr: { type: 'button' } }).addEventListener('click', async () => { await this.plugin.deleteProfile(p.id); this.render(); });
     });
-    const add = c.createEl('button', { text: '＋ Thêm bảng', cls: 'mod-cta', attr: { type: 'button', style: 'margin-top:14px;' } });
+    const add = c.createEl('button', { text: tr('＋ Thêm bảng'), cls: 'mod-cta', attr: { type: 'button', style: 'margin-top:14px;' } });
     add.addEventListener('click', async () => { await this.plugin.addProfile(); this.render(); });
   }
   onClose() { this.contentEl.empty(); }
@@ -1401,7 +1497,7 @@ class ProfileManagerModal extends obsidian.Modal {
 function newId() { return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 function makeProfile(o) {
   return Object.assign({
-    id: newId(), name: 'Bảng chính',
+    id: newId(), name: tr('Bảng chính'),
     iconType: 'letter',  // 'letter' (chữ cái đầu) | 'icon' (SVG bộ có sẵn) | 'image' (ảnh vault)
     icon: '',            // iconType='icon' → key trong I ; iconType='image' → path ảnh trong vault
     color: '#2F6DB0',
@@ -1429,24 +1525,25 @@ const DASH_START = '<!-- pie:dashboard:start · vùng tự sinh theo Setting "Ph
 const DASH_END = '<!-- pie:dashboard:end -->';
 const DASH_INTRO = '---\ntitle: Việc con theo dự án\ntype: dashboard\nllm_managed: true\ntags:\n  - dashboard\n  - project\n---\n> [!info] Tổng hợp tự động (Pie Tasks × Dataview)\n> Mọi **task con** gắn field **Dự án** trong Pie Tasks được gom theo từng dự án ở đây — tick được trực tiếp, cập nhật live. Xem **tiến độ tổng** (số việc / %) theo dự án ở bảng `Dashboard Projects.base`. Đổi phạm vi ở Settings → Pie Tasks.\n';
 const DEFAULT_PROJECTS_FOLDER = '3.PROCESS/02.PROJECTS';
-const DEFAULTS = { profiles: null, activeId: null, defaultPeoplePath: DEFAULT_PEOPLE, taskDashboardScope: 'all', taskDashboardPath: DEFAULT_DASH, projectsFolder: DEFAULT_PROJECTS_FOLDER, stepsOnCard: false };
+const DEFAULTS = { profiles: null, activeId: null, defaultPeoplePath: DEFAULT_PEOPLE, taskDashboardScope: 'all', taskDashboardPath: DEFAULT_DASH, projectsFolder: DEFAULT_PROJECTS_FOLDER, stepsOnCard: false, lang: 'vi' };
 // Chữ cái đại diện bảng = ký tự chữ/số đầu tiên của tên (như logo 'P' cũ, đẹp hơn emoji)
 function profLetter(name) { const m = (name || '').match(/[\p{L}\p{N}]/u); return m ? m[0].toUpperCase() : 'B'; }
 
 class PieTasksPlugin extends obsidian.Plugin {
   async onload() {
     this.settings = Object.assign({}, DEFAULTS, await this.loadData());
+    LANG = this.settings.lang || 'vi';
     this.migrateProfiles();
     this.demoFile = 'planner';
     this.taskData = null; this.taskFile = null;
     this.injectFonts();
     this.registerView(LIVE_VIEW, leaf => new PieLiveView(leaf, this));
     this.registerView(DEMO_VIEW, leaf => new PieDemoView(leaf, this));
-    this.addRibbonIcon('checkmark', 'Pie Tasks (từ file)', () => this.openLive());
-    this.addCommand({ id: 'open-live', name: 'Mở Pie Tasks — dữ liệu thật từ file', callback: () => this.openLive() });
-    this.addCommand({ id: 'open-demo-planner', name: 'Mở giao diện mẫu — Day Planner', callback: () => this.openDemo('planner') });
-    this.addCommand({ id: 'open-demo-studio', name: 'Mở giao diện mẫu — Studio', callback: () => this.openDemo('studio') });
-    this.addCommand({ id: 'reload-tasks', name: 'Tải lại TASKS.md', callback: () => this.reload() });
+    this.addRibbonIcon('checkmark', tr('Pie Tasks (từ file)'), () => this.openLive());
+    this.addCommand({ id: 'open-live', name: tr('Mở Pie Tasks — dữ liệu thật từ file'), callback: () => this.openLive() });
+    this.addCommand({ id: 'open-demo-planner', name: tr('Mở giao diện mẫu — Day Planner'), callback: () => this.openDemo('planner') });
+    this.addCommand({ id: 'open-demo-studio', name: tr('Mở giao diện mẫu — Studio'), callback: () => this.openDemo('studio') });
+    this.addCommand({ id: 'reload-tasks', name: tr('Tải lại TASKS.md'), callback: () => this.reload() });
     this.addSettingTab(new PieSettingTab(this.app, this));
     this.registerEvent(this.app.vault.on('modify', f => { if (this.taskFile && f && f.path === this.taskFile.path) this.reload(); }));
     this.registerEvent(this.app.workspace.on('css-change', () => this.refreshLiveViews()));
@@ -1464,7 +1561,7 @@ class PieTasksPlugin extends obsidian.Plugin {
     }
     // Dựng 1 profile từ schema phẳng cũ → user hiện tại thấy y nguyên bảng cũ
     const legacy = makeProfile({
-      name: 'Bảng chính',
+      name: tr('Bảng chính'),
       taskPath: s.taskPath || 'TASKS.md',
       peoplePath: '', // dùng default chung bên dưới
       viewState: s.viewState || {},
@@ -1498,7 +1595,7 @@ class PieTasksPlugin extends obsidian.Plugin {
     await this.reload();
   }
   async addProfile() {
-    const r = await askProfile(this.app, { title: 'Thêm bảng', color: '#2F6DB0', okText: 'Tạo' });
+    const r = await askProfile(this.app, { title: tr('Thêm bảng'), color: '#2F6DB0', okText: 'Tạo' });
     if (!r || !r.taskPath) return;
     const p = makeProfile({ name: r.name || r.taskPath, iconType: r.iconType, icon: r.icon, color: r.color, taskPath: r.taskPath, peoplePath: r.peoplePath || '' });
     this.settings.profiles.push(p);
@@ -1506,16 +1603,16 @@ class PieTasksPlugin extends obsidian.Plugin {
   }
   async editProfile(id) {
     const p = this.settings.profiles.find(x => x.id === id); if (!p) return;
-    const r = await askProfile(this.app, { title: 'Sửa bảng', name: p.name, iconType: p.iconType, icon: p.icon, color: p.color, taskPath: p.taskPath, peoplePath: p.peoplePath, okText: 'Lưu' });
+    const r = await askProfile(this.app, { title: tr('Sửa bảng'), name: p.name, iconType: p.iconType, icon: p.icon, color: p.color, taskPath: p.taskPath, peoplePath: p.peoplePath, okText: 'Lưu' });
     if (!r || !r.taskPath) return;
     Object.assign(p, { name: r.name || r.taskPath, iconType: r.iconType, icon: r.icon, color: r.color, taskPath: r.taskPath, peoplePath: r.peoplePath || '' });
     await this.saveSettings();
     if (id === this.settings.activeId) await this.reload(); else this.refreshLiveViews();
   }
   async deleteProfile(id) {
-    if (this.settings.profiles.length <= 1) { new obsidian.Notice('Phải còn ít nhất 1 bảng.'); return; }
+    if (this.settings.profiles.length <= 1) { new obsidian.Notice(tr('Phải còn ít nhất 1 bảng.')); return; }
     const p = this.settings.profiles.find(x => x.id === id); if (!p) return;
-    if (!(await askConfirm(this.app, 'Xoá bảng "' + p.name + '"? File .md KHÔNG bị xoá, chỉ gỡ khỏi danh sách bảng.'))) return;
+    if (!(await askConfirm(this.app, tr('Xoá bảng "') + p.name + tr('"? File .md KHÔNG bị xoá, chỉ gỡ khỏi danh sách bảng.')))) return;
     const wasActive = id === this.settings.activeId;
     this.settings.profiles = this.settings.profiles.filter(x => x.id !== id);
     if (wasActive) { this.settings.activeId = this.settings.profiles[0].id; await this.saveSettings(); this.reseedViews(); await this.reload(); }
@@ -1716,7 +1813,7 @@ class PieTasksPlugin extends obsidian.Plugin {
   setProject(t, link) { if (!link) return; return this.mutate(md => editLineMd(md, taskKey(t), l => setProjectRaw(l, link))); }
   removeProject(t) { return this.mutate(md => editLineMd(md, taskKey(t), l => setProjectRaw(l, null))); }
   pickProject(t) { const src = this.taskFile ? this.taskFile.path : ''; new ProjectSuggestModal(this.app, f => this.setProject(t, this.app.metadataCache.fileToLinktext(f, src, true))).open(); }
-  addTask(laneRaw) { const nm = laneName(laneRaw); this._pendingNew = { lane: laneRaw, title: 'Việc mới' }; return this.mutate(md => addTaskMd(md, nm, { title: 'Việc mới', date: today(), s: '09:00', e: '10:00' }), isSyncedLane(laneRaw) ? 'Đã thêm. Lưu ý: lane 1Office sẽ bị sync ghi đè.' : null); }
+  addTask(laneRaw) { const nm = laneName(laneRaw); this._pendingNew = { lane: laneRaw, title: tr('Việc mới') }; return this.mutate(md => addTaskMd(md, nm, { title: tr('Việc mới'), date: today(), s: '09:00', e: '10:00' }), isSyncedLane(laneRaw) ? 'Đã thêm. Lưu ý: lane 1Office sẽ bị sync ghi đè.' : null); }
   async deleteTask(t) { if (!(await askConfirm(this.app, 'Xoá việc "' + t.title + '"?'))) return; await this.mutate(md => deleteTaskMd(md, taskKey(t)), this.syncWarn(t)); }
   duplicateTask(t) { return this.mutate(md => duplicateTaskMd(md, taskKey(t))); }
   moveTask(key, targetLaneNm) { const t = findTask(this.taskData ? this.taskData.tasks : [], key); return this.mutate(md => moveTaskMd(md, key, targetLaneNm), (t && t.synced) ? 'Đã chuyển. Lưu ý: task 1Office có thể bị sync đưa lại.' : null); }
@@ -1724,9 +1821,9 @@ class PieTasksPlugin extends obsidian.Plugin {
   _laneRaw(nm) { return ((this.taskData && this.taskData.lanes) || []).find(l => laneName(l) === nm) || ''; }
   _laneColor(nm) { const ls = this.prof().laneStyles || {}; return (ls[nm] && ls[nm].color) || ''; }
   async _saveLaneStyle(name, color, oldName) { const p = this.prof(); const ls = p.laneStyles || (p.laneStyles = {}); if (oldName && oldName !== name) delete ls[oldName]; if (color) ls[name] = { color }; else delete ls[name]; await this.saveSettings(); }
-  async renameLane(nm) { const cur = laneEmoji(this._laneRaw(nm)); const curColor = this._laneColor(nm); const r = await askLane(this.app, { title: 'Sửa lane', name: nm, emoji: cur, color: curColor, okText: 'Lưu' }); if (!r) return; const heading = laneHeading(r.emoji, r.name); if (heading === laneHeading(cur, nm) && r.color === curColor) return; await this._saveLaneStyle(r.name, r.color, nm); await this.mutate(md => renameLaneMd(md, nm, heading)); }
-  async addLane() { const r = await askLane(this.app, { title: 'Thêm lane', name: '', emoji: '📋', okText: 'Thêm' }); if (!r) return; await this._saveLaneStyle(r.name, r.color); await this.mutate(md => addLaneMd(md, laneHeading(r.emoji, r.name))); }
-  async insertLane(refNm, before) { const r = await askLane(this.app, { title: 'Thêm lane', name: '', emoji: '📋', okText: 'Thêm' }); if (!r) return; await this._saveLaneStyle(r.name, r.color); await this.mutate(md => addLaneMd(md, laneHeading(r.emoji, r.name), refNm, !before)); }
+  async renameLane(nm) { const cur = laneEmoji(this._laneRaw(nm)); const curColor = this._laneColor(nm); const r = await askLane(this.app, { title: tr('Sửa lane'), name: nm, emoji: cur, color: curColor, okText: 'Lưu' }); if (!r) return; const heading = laneHeading(r.emoji, r.name); if (heading === laneHeading(cur, nm) && r.color === curColor) return; await this._saveLaneStyle(r.name, r.color, nm); await this.mutate(md => renameLaneMd(md, nm, heading)); }
+  async addLane() { const r = await askLane(this.app, { title: tr('Thêm lane'), name: '', emoji: '📋', okText: 'Thêm' }); if (!r) return; await this._saveLaneStyle(r.name, r.color); await this.mutate(md => addLaneMd(md, laneHeading(r.emoji, r.name))); }
+  async insertLane(refNm, before) { const r = await askLane(this.app, { title: tr('Thêm lane'), name: '', emoji: '📋', okText: 'Thêm' }); if (!r) return; await this._saveLaneStyle(r.name, r.color); await this.mutate(md => addLaneMd(md, laneHeading(r.emoji, r.name), refNm, !before)); }
   async deleteLane(nm) { if (!(await askConfirm(this.app, 'Xoá lane "' + nm + '"? Việc trong lane sẽ dồn sang lane kề.'))) return; await this.mutate(md => deleteLaneMd(md, nm)); }
   moveLane(src, tgt, before) { if (src === tgt) return; return this.mutate(md => moveLaneMd(md, src, tgt, before)); }
   sortLane(nm, mode) { return this.mutate(md => sortLaneMd(md, nm, mode)); }
@@ -1738,8 +1835,8 @@ class SetupModal extends obsidian.Modal {
   constructor(app, plugin) { super(app); this.plugin = plugin; }
   onOpen() {
     const { contentEl } = this; contentEl.empty(); contentEl.addClass('pt-setup');
-    const h = contentEl.createEl('h3', { cls: 'pt-setup-h' }); h.insertAdjacentHTML('afterbegin', I.zap); h.appendText(' Thiết lập hệ thống quản lý công việc');
-    contentEl.createEl('p', { cls: 'pt-setup-desc', text: 'Dựng sẵn mọi thứ Pie Tasks cần. Chỉ tạo file còn thiếu — file đã có sẽ được giữ nguyên.' });
+    const h = contentEl.createEl('h3', { cls: 'pt-setup-h' }); h.insertAdjacentHTML('afterbegin', I.zap); h.appendText(tr(' Thiết lập hệ thống quản lý công việc'));
+    contentEl.createEl('p', { cls: 'pt-setup-desc', text: tr('Dựng sẵn mọi thứ Pie Tasks cần. Chỉ tạo file còn thiếu — file đã có sẽ được giữ nguyên.') });
     const p = this.plugin;
     let folder = p.settings.projectsFolder || DEFAULT_PROJECTS_FOLDER;
     const items = [
@@ -1763,16 +1860,16 @@ class SetupModal extends obsidian.Modal {
       });
     };
     renderList();
-    new obsidian.Setting(contentEl).setName('Thư mục chứa dự án').setDesc('Nơi đặt Dashboard Projects.base + các note có "subtype: project".')
+    new obsidian.Setting(contentEl).setName(tr('Thư mục chứa dự án')).setDesc(tr('Nơi đặt Dashboard Projects.base + các note có "subtype: project".'))
       .addText(t => t.setValue(folder).onChange(v => { folder = v.trim() || DEFAULT_PROJECTS_FOLDER; renderList(); }));
     const foot = contentEl.createEl('div', { cls: 'pt-setup-foot' });
-    foot.createEl('button', { text: 'Huỷ' }).addEventListener('click', () => this.close());
-    const go = foot.createEl('button', { cls: 'mod-cta', text: 'Thiết lập' });
+    foot.createEl('button', { text: tr('Huỷ') }).addEventListener('click', () => this.close());
+    const go = foot.createEl('button', { cls: 'mod-cta', text: tr('Thiết lập') });
     go.addEventListener('click', async () => {
-      go.disabled = true; go.setText('Đang dựng…');
+      go.disabled = true; go.setText(tr('Đang dựng…'));
       p.settings.projectsFolder = obsidian.normalizePath(folder); await p.saveSettings();
       const r = await p.setupSystem(folder);
-      new obsidian.Notice('Pie Tasks: tạo ' + r.created.length + ' file' + (r.skipped.length ? ', giữ ' + r.skipped.length + ' file đã có' : '') + '.');
+      new obsidian.Notice(tr('Pie Tasks: tạo ') + r.created.length + tr(' file') + (r.skipped.length ? tr(', giữ ') + r.skipped.length + tr(' file đã có') : '') + '.');
       this.close(); await p.openLive();
     });
   }
@@ -1783,33 +1880,37 @@ class PieSettingTab extends obsidian.PluginSettingTab {
   constructor(app, plugin) { super(app, plugin); this.plugin = plugin; }
   display() {
     const { containerEl } = this; containerEl.empty();
-    new obsidian.Setting(containerEl).setName('Thiết lập nhanh hệ thống').setClass('pt-setup-cta')
-      .setDesc('Dựng 1 lần: bảng công việc + file nhân sự + Dashboard dự án (Bases) + Dashboard việc con (Dataview). Chỉ tạo file còn thiếu.')
-      .addButton(b => { b.setButtonText('Thiết lập nhanh').setCta().onClick(() => new SetupModal(this.app, this.plugin).open()); b.buttonEl.addClass('pt-btn-ic'); b.buttonEl.insertAdjacentHTML('afterbegin', I.zap); });
-    new obsidian.Setting(containerEl).setName('Bảng công việc (profile)')
-      .setDesc('Mỗi bảng = 1 file .md riêng (quản lý theo project). Đổi bảng bằng chip góc trên-trái board.')
-      .addButton(b => b.setButtonText('Quản lý bảng').setCta().onClick(() => new ProfileManagerModal(this.app, this.plugin).open()));
-    new obsidian.Setting(containerEl).setName('Đường dẫn file bảng đang mở')
-      .setDesc('File Markdown của bảng hiện tại "' + this.plugin.prof().name + '" (tương đối gốc vault).')
+    new obsidian.Setting(containerEl).setName(tr('Ngôn ngữ')).setDesc(tr('Ngôn ngữ hiển thị của plugin (dữ liệu trong file vẫn giữ nguyên).'))
+      .addDropdown(d => d.addOption('vi', 'Tiếng Việt').addOption('en', 'English')
+        .setValue(this.plugin.settings.lang || 'vi')
+        .onChange(async v => { this.plugin.settings.lang = v; LANG = v; await this.plugin.saveSettings(); this.plugin.refreshLiveViews(); this.display(); }));
+    new obsidian.Setting(containerEl).setName(tr('Thiết lập nhanh hệ thống')).setClass('pt-setup-cta')
+      .setDesc(tr('Dựng 1 lần: bảng công việc + file nhân sự + Dashboard dự án (Bases) + Dashboard việc con (Dataview). Chỉ tạo file còn thiếu.'))
+      .addButton(b => { b.setButtonText(tr('Thiết lập nhanh')).setCta().onClick(() => new SetupModal(this.app, this.plugin).open()); b.buttonEl.addClass('pt-btn-ic'); b.buttonEl.insertAdjacentHTML('afterbegin', I.zap); });
+    new obsidian.Setting(containerEl).setName(tr('Bảng công việc (profile)'))
+      .setDesc(tr('Mỗi bảng = 1 file .md riêng (quản lý theo project). Đổi bảng bằng chip góc trên-trái board.'))
+      .addButton(b => b.setButtonText(tr('Quản lý bảng')).setCta().onClick(() => new ProfileManagerModal(this.app, this.plugin).open()));
+    new obsidian.Setting(containerEl).setName(tr('Đường dẫn file bảng đang mở'))
+      .setDesc(tr('File Markdown của bảng hiện tại "') + this.plugin.prof().name + '" (tương đối gốc vault).')
       .addText(t => t.setPlaceholder('TASKS.md').setValue(this.plugin.prof().taskPath).onChange(async v => { this.plugin.prof().taskPath = v.trim() || 'TASKS.md'; await this.plugin.saveSettings(); await this.plugin.reload(); }));
     new obsidian.Setting(containerEl)
-      .setName('File nhân sự mặc định (dùng chung)')
-      .setDesc('File bảng nhân sự cho picker "Thêm người phụ trách" (dạng | Tên | ID | …). Bảng nào để trống peoplePath sẽ dùng file này.')
+      .setName(tr('File nhân sự mặc định (dùng chung)'))
+      .setDesc(tr('File bảng nhân sự cho picker "Thêm người phụ trách" (dạng | Tên | ID | …). Bảng nào để trống peoplePath sẽ dùng file này.'))
       .addText(t => t.setPlaceholder('vd: People.md').setValue(this.plugin.settings.defaultPeoplePath || DEFAULT_PEOPLE).onChange(async v => { this.plugin.settings.defaultPeoplePath = v.trim() || DEFAULT_PEOPLE; await this.plugin.saveSettings(); }));
     new obsidian.Setting(containerEl)
-      .setName('Phạm vi bảng việc con theo dự án')
-      .setDesc('Dataview gom task con theo dự án trong note dashboard. "Tất cả" = mọi task gắn dự án trong vault (kể cả checklist thừa kế frontmatter). "Chỉ Pie Tasks" = chỉ task gắn dự án trực tiếp trên các bảng Pie.')
+      .setName(tr('Phạm vi bảng việc con theo dự án'))
+      .setDesc(tr('Dataview gom task con theo dự án trong note dashboard. "Tất cả" = mọi task gắn dự án trong vault (kể cả checklist thừa kế frontmatter). "Chỉ Pie Tasks" = chỉ task gắn dự án trực tiếp trên các bảng Pie.'))
       .addDropdown(d => d.addOption('all', 'Tất cả task gắn dự án trong vault').addOption('pie', 'Chỉ task từ các bảng Pie Tasks')
         .setValue(this.plugin.settings.taskDashboardScope || 'all')
         .onChange(async v => { this.plugin.settings.taskDashboardScope = v; await this.plugin.saveSettings(); await this.plugin.writeTaskDashboard(); }));
     new obsidian.Setting(containerEl)
-      .setName('Đường dẫn note dashboard việc con')
-      .setDesc('Note chứa 2 khối Dataview (vùng tự sinh giữa marker). Chưa có sẽ tự tạo khi lưu phạm vi.')
+      .setName(tr('Đường dẫn note dashboard việc con'))
+      .setDesc(tr('Note chứa 2 khối Dataview (vùng tự sinh giữa marker). Chưa có sẽ tự tạo khi lưu phạm vi.'))
       .addText(t => t.setPlaceholder(DEFAULT_DASH).setValue(this.plugin.settings.taskDashboardPath || DEFAULT_DASH).onChange(async v => { this.plugin.settings.taskDashboardPath = v.trim() || DEFAULT_DASH; await this.plugin.saveSettings(); }))
-      .addButton(b => b.setButtonText('Ghi lại').onClick(async () => { await this.plugin.writeTaskDashboard(); new obsidian.Notice('Đã ghi dashboard việc con.'); }));
+      .addButton(b => b.setButtonText(tr('Ghi lại')).onClick(async () => { await this.plugin.writeTaskDashboard(); new obsidian.Notice(tr('Đã ghi dashboard việc con.')); }));
     new obsidian.Setting(containerEl)
-      .setName('Hiện danh sách bước làm trên thẻ')
-      .setDesc('Bật: thẻ việc hiện đầy đủ các bước (tick được ngay trên thẻ). Tắt: chỉ hiện số đếm dạng 0/3.')
+      .setName(tr('Hiện danh sách bước làm trên thẻ'))
+      .setDesc(tr('Bật: thẻ việc hiện đầy đủ các bước (tick được ngay trên thẻ). Tắt: chỉ hiện số đếm dạng 0/3.'))
       .addToggle(t => t.setValue(!!this.plugin.settings.stepsOnCard).onChange(async v => { this.plugin.settings.stepsOnCard = v; await this.plugin.saveSettings(); this.plugin.refreshLiveViews(); }));
   }
 }
