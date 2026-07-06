@@ -419,6 +419,31 @@ function moveTaskMd(md, key, targetLaneNm) {
   lines.splice(at, 0, ...block);
   return lines.join('\n');
 }
+function moveTaskToPosMd(md, key, targetLaneNm, beforeKey) {
+  // Di chuyển task tới vị trí cụ thể trong lane (kéo đổi thứ tự). beforeKey=null → cuối lane.
+  if (beforeKey === key) return md;
+  const { tasks } = parseTasks(md, '');
+  const t = findTask(tasks, key);
+  if (!t) return md;
+  const lines = md.split('\n');
+  const b = blockRangeOf(lines, t);
+  const blockLen = b.end - b.start + 1;
+  const block = lines.slice(b.start, b.end + 1);
+  // vị trí chèn tính trên lines GỐC (trước khi cắt) để index chính xác
+  let insertAt;
+  const bt = beforeKey ? findTask(tasks, beforeKey) : null;
+  if (bt && bt.laneName === targetLaneNm) {
+    insertAt = blockRangeOf(lines, bt).start;
+  } else {
+    const rng = findLane(lines, targetLaneNm);
+    if (!rng) return md;
+    insertAt = insertPos(lines, rng);
+  }
+  lines.splice(b.start, blockLen);            // cắt block bị kéo
+  if (b.start < insertAt) insertAt -= blockLen; // block ở trên đích → dời index lên
+  lines.splice(insertAt, 0, ...block);
+  return lines.join('\n');
+}
 function toggleCheckMd(md, key, idx) {
   const { tasks } = parseTasks(md, '');
   const t = findTask(tasks, key);
@@ -787,10 +812,13 @@ class PieLiveView extends obsidian.ItemView {
     else people.createEl('span', { cls: 'ev-going', text: 'Chưa giao' });
     card.addEventListener('click', () => this.openCard(t));
     card.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); this.openCard(t); } });
-    card.addEventListener('dragstart', ev => { ev.dataTransfer.setData('text/plain', taskKey(t)); ev.dataTransfer.effectAllowed = 'move'; card.classList.add('dragging'); });
-    card.addEventListener('dragend', () => card.classList.remove('dragging'));
+    card.addEventListener('dragstart', ev => { ev.dataTransfer.setData('text/plain', taskKey(t)); ev.dataTransfer.effectAllowed = 'move'; card.classList.add('dragging'); this._draggingKey = taskKey(t); this._dragEl = card; this._dragAnchor = null; this._reorderCommitted = false; });
+    card.addEventListener('dragend', () => { card.classList.remove('dragging'); this._draggingKey = null; this._dragEl = null; this._dragAnchor = null; this._clearCardIndicators(); if (!this._reorderCommitted) this.render(); this._reorderCommitted = false; });
   }
   _clearLaneIndicators() { if (this.root) this.root.querySelectorAll('.lane-drop-before,.lane-drop-after').forEach(e => e.classList.remove('lane-drop-before', 'lane-drop-after')); }
+  _clearCardIndicators() { if (this.root) this.root.querySelectorAll('.pb-card-before,.pb-card-after').forEach(e => e.classList.remove('pb-card-before', 'pb-card-after')); }
+  _cardsIn(col, dragKey) { return [...col.querySelectorAll('.ev')].filter(c => c.dataset.key && c.dataset.key !== dragKey); }
+  _cardBeforeAt(col, y, dragKey) { for (const c of this._cardsIn(col, dragKey)) { const r = c.getBoundingClientRect(); if (y < r.top + r.height / 2) return c; } return null; }
   wireLaneDrag(handle, col, nm) {
     // Pattern obsidian-tasks: chỉ bật draggable KHI mousedown vào handle → kéo CẢ cột (ghost full chiều dài), không đụng card
     handle.addEventListener('mousedown', ev => { if (ev.target.closest('button, a')) return; col.draggable = true; });
@@ -810,6 +838,15 @@ class PieLiveView extends obsidian.ItemView {
         ev.dataTransfer.dropEffect = 'move';
         const r = col.getBoundingClientRect(); const after = ev.clientX > r.left + r.width / 2;
         col.classList.toggle('lane-drop-after', after); col.classList.toggle('lane-drop-before', !after);
+      } else if (this._dragEl) {
+        // kéo card → dịch card LIVE tới vị trí con trỏ (card khác nhường chỗ ngay)
+        ev.dataTransfer.dropEffect = 'move';
+        const before = this._cardBeforeAt(col, ev.clientY, this._draggingKey);
+        const anchor = before ? before.dataset.key : '__end__';
+        if (this._dragEl.parentElement !== col || this._dragAnchor !== anchor) {
+          this._dragAnchor = anchor;
+          col.insertBefore(this._dragEl, before || col.querySelector('.pb-lane-add'));
+        }
       } else col.classList.add('drop-hover');
     });
     col.addEventListener('dragleave', ev => {
@@ -820,7 +857,14 @@ class PieLiveView extends obsidian.ItemView {
       ev.preventDefault(); col.classList.remove('drop-hover', 'lane-drop-before', 'lane-drop-after');
       const laneSrc = ev.dataTransfer.getData('application/x-pie-lane');
       if (laneSrc) { if (laneSrc !== laneNm) { const r = col.getBoundingClientRect(); const before = ev.clientX <= r.left + r.width / 2; this.plugin.moveLane(laneSrc, laneNm, before); } return; }
-      const key = ev.dataTransfer.getData('text/plain'); if (key) this.plugin.moveTask(key, laneNm);
+      const key = ev.dataTransfer.getData('text/plain');
+      if (key && this._dragEl) {
+        // card đã được dịch live tới đúng chỗ → đọc card kế sau nó làm mốc
+        let sib = this._dragEl.nextElementSibling;
+        while (sib && !sib.classList.contains('ev')) sib = sib.nextElementSibling;
+        this._reorderCommitted = true;
+        this.plugin.moveTaskToPos(key, laneNm, sib ? sib.dataset.key : null);
+      }
     });
   }
 
@@ -1676,6 +1720,7 @@ class PieTasksPlugin extends obsidian.Plugin {
   async deleteTask(t) { if (!(await askConfirm(this.app, 'Xoá việc "' + t.title + '"?'))) return; await this.mutate(md => deleteTaskMd(md, taskKey(t)), this.syncWarn(t)); }
   duplicateTask(t) { return this.mutate(md => duplicateTaskMd(md, taskKey(t))); }
   moveTask(key, targetLaneNm) { const t = findTask(this.taskData ? this.taskData.tasks : [], key); return this.mutate(md => moveTaskMd(md, key, targetLaneNm), (t && t.synced) ? 'Đã chuyển. Lưu ý: task 1Office có thể bị sync đưa lại.' : null); }
+  moveTaskToPos(key, targetLaneNm, beforeKey) { const t = findTask(this.taskData ? this.taskData.tasks : [], key); return this.mutate(md => moveTaskToPosMd(md, key, targetLaneNm, beforeKey), (t && t.synced) ? 'Đã sắp xếp. Lưu ý: lane 1Office bị sync ghi đè thứ tự.' : null); }
   _laneRaw(nm) { return ((this.taskData && this.taskData.lanes) || []).find(l => laneName(l) === nm) || ''; }
   _laneColor(nm) { const ls = this.prof().laneStyles || {}; return (ls[nm] && ls[nm].color) || ''; }
   async _saveLaneStyle(name, color, oldName) { const p = this.prof(); const ls = p.laneStyles || (p.laneStyles = {}); if (oldName && oldName !== name) delete ls[oldName]; if (color) ls[name] = { color }; else delete ls[name]; await this.saveSettings(); }

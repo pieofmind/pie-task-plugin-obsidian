@@ -2,6 +2,15 @@
 
 Định dạng theo [Keep a Changelog](https://keepachangelog.com/) + [SemVer](https://semver.org/).
 
+## [2.0.3]
+
+### Added
+- **Kéo thả đổi thứ tự task trong lane**: kéo card lên/xuống, các card khác **nhường chỗ live** theo con trỏ; thả để chốt, huỷ (Esc) tự hoàn tác. Kéo sang lane khác cũng thả **đúng vị trí**. Ghi thẳng thứ tự vào file, giữ nguyên checklist con của task.
+
+### Fixed
+- Viền chọn lane chuyển sang **inset** — không còn bị khung/bo của board cắt cụt (trước hiện lòi 4 góc).
+- Ảnh đại diện profile (chip rail) **phủ kín khung** trên Obsidian/iOS (chống rule `img{height:auto}` làm ảnh dọc không đầy khung).
+
 ## [2.0.0]
 
 ### Added
