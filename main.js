@@ -7,6 +7,13 @@ const DEMO_VIEW = 'pie-tasks-demo';
 const DEMO_FILES = { planner: 'Pie Tasks - Day Planner.html', studio: 'Pie Tasks - Studio.html' };
 
 const SKIP_SECTIONS = ['Metric nhanh', 'Priority tasks', 'Quick links'];
+const PT_LOGO = 'data:image/png;base64,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';
+const PT_CHANNELS = [
+  { label: 'Cộng đồng Skool', url: 'https://www.skool.com/avanix-ai-1973/classroom', icon: 'cap' },
+  { label: 'Website', url: 'https://pieofmind.work/', icon: 'globe' },
+  { label: 'YouTube', url: 'https://www.youtube.com/@pieofmind08', icon: 'play' },
+  { label: 'TikTok', url: 'https://www.tiktok.com/@pieofmind', icon: 'music' }
+];
 const DEFAULT_PEOPLE = 'People.md';
 
 const FONT_DIR = '5.RESOURCE/pie-of-mind-design-system/fonts';
@@ -100,6 +107,8 @@ const I18N_EN = {
   'Thiết lập': 'Set up', 'Đang dựng…': 'Setting up…', 'Thiết lập nhanh': 'Quick setup', 'Thiết lập nhanh hệ thống': 'Quick system setup',
   'Dựng 1 lần: bảng công việc + file nhân sự + Dashboard dự án (Bases) + Dashboard việc con (Dataview). Chỉ tạo file còn thiếu.': 'One-shot: task board + people file + Projects dashboard (Bases) + child-task dashboard (Dataview). Only creates missing files.',
   // settings tab
+  'Quản lý công việc từ file Markdown — bảng, danh sách, lịch, dashboard.': 'Manage tasks from Markdown files — board, list, calendar, dashboard.',
+  'Cộng đồng Skool': 'Skool community',
   'Bảng công việc (profile)': 'Task board (profile)',
   'Mỗi bảng = 1 file .md riêng (quản lý theo project). Đổi bảng bằng chip góc trên-trái board.': 'Each board = its own .md file (manage per project). Switch boards via the chip at the top-left.',
   'Đường dẫn file bảng đang mở': 'Current board file path', 'File Markdown của bảng hiện tại "': 'Markdown file of the current board "',
@@ -158,7 +167,14 @@ const STATUS_LABELS = Object.keys(LABELS).sort((a, b) => b.length - a.length);
 const STATUS_RE = new RegExp('`(' + STATUS_LABELS.join('|') + ')`');
 const STATUS_RE_STRIP = new RegExp('\\s*`(' + STATUS_LABELS.join('|') + ')`', 'g');
 
-const PRI = { high: { lab: 'Ưu tiên cao', c: '#9A3B3B' }, normal: { lab: 'Thường', c: '#7D848F' } };
+const PRI = { high: { lab: 'Cao', c: '#E5484D' }, med: { lab: 'Trung bình', c: '#E5A44D' }, normal: { lab: 'Bình thường', c: '#7D848F' }, low: { lab: 'Thấp', c: '#59606B' } };
+const PRIO_ORDER = { high: 3, med: 2, normal: 1, low: 0 };
+const EISEN = {
+  q1: { lab: 'Quan trọng · Khẩn cấp', short: 'QT-KC', c: '#C0392B' },
+  q2: { lab: 'Quan trọng · Không khẩn cấp', short: 'QT-KKC', c: '#2E8B6B' },
+  q3: { lab: 'Không quan trọng · Khẩn cấp', short: 'KQT-KC', c: '#C9962B' },
+  q4: { lab: 'Không quan trọng · Không khẩn cấp', short: 'KQT-KKC', c: '#7D848F' }
+};
 const VIEWS = [['all', 'Tất cả'], ['day', 'Ngày'], ['week', 'Tuần'], ['month', 'Tháng'], ['range', 'Khoảng']];
 
 const I = {
@@ -181,6 +197,9 @@ const I = {
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>',
   copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
   trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg>',
+  person: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
   userPlus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0M18 8v6M21 11h-6"/></svg>',
   image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M4 17l4.5-4.5 3.5 3.5 3-3L20 16.5"/></svg>',
   zap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>',
@@ -191,7 +210,11 @@ const I = {
   dots: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>',
   sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
   moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
-  gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V19a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>'
+  gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V19a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>',
+  cap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9l10-5 10 5-10 5-10-5z"/><path d="M6 11.5v4.5c0 1.5 3 3 6 3s6-1.5 6-3v-4.5"/><path d="M22 9v6"/></svg>',
+  globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15.3 15.3 0 0 1 0 18M12 3a15.3 15.3 0 0 0 0 18"/></svg>',
+  play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="2.5" y="5.5" width="19" height="13" rx="3.5"/><path d="M10.3 9.1v5.8l5.2-2.9z" fill="currentColor" stroke="none"/></svg>',
+  music: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l9-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="15.5" cy="16" r="2.5"/></svg>'
 };
 const SI = {
   dot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>',
@@ -302,21 +325,22 @@ function parseTasks(md, path) {
     const top = raw.match(/^- \[( |x|X)\]\s+(.*)$/);
     const sub = raw.match(/^[ \t]+- \[( |x|X)\]\s+(.*)$/);
     if (sub && cur) {
-      cur.check.push([sub[2].replace(/`[^`]*`/g, '').trim(), sub[1].toLowerCase() === 'x']);
+      cur.check.push([sub[2].replace(/`[^`]*`/g, '').trim(), sub[1].toLowerCase() === 'x', parseOwners(sub[2])[0] || null]);
       cur.blockEnd = i;
       continue;
     }
     if (!top) continue;
     const rest = top[2];
     const done = top[1].toLowerCase() === 'x';
-    let owner = null;
-    const om = rest.match(/`👤\s*([^`]+)`/) || rest.match(/`owner:\s*([^`]+)`/);
-    if (om) owner = om[1].trim();
-    if (owner === '—' || owner === '') owner = null;
+    const owners = parseOwners(rest);
+    const owner = owners.length ? owners.map(o => o.name).join(', ') : null;
     let date = null;
     const dm = rest.match(/📅\s*(\d{4}-\d{2}-\d{2})/);
     if (dm) date = dm[1];
     else { const dd = rest.match(/deadline:\s*(\d{2})\/(\d{2})\/(\d{4})/); if (dd) date = dd[3] + '-' + dd[2] + '-' + dd[1]; }
+    let startDate = null;
+    const sdm = rest.match(/🛫\s*(\d{4}-\d{2}-\d{2})/);
+    if (sdm) startDate = sdm[1];
     let s = null, e = null;
     const tm = rest.match(/⏰\s*(\d{1,2}:\d{2})\s*(?:[–\-—→]|to)\s*(\d{1,2}:\d{2})/);
     if (tm) { s = tm[1]; e = tm[2]; }
@@ -326,22 +350,25 @@ function parseTasks(md, path) {
     if (done) status = 'completed';
     const over = !done && (/⚠️/.test(rest) || (date && date < tod));
     const idm = rest.match(/id:(\d+)/);
-    const pri = /🔴/.test(rest) || /Ưu tiên/.test(rest);
+    const prio = derivePrio(rest);
+    const pri = prio === 'high';
     const pctm = rest.match(/`(\d{1,3})%`/);
     const nextm = rest.match(/`next:\s*([^`]+)`/);
+    const notem = rest.match(/`note:\s*([^`]+)`/);
+    const eim = rest.match(/`eisen:\s*(q[1-4])`/);
     const outm = rest.match(/`output:\s*([^`]+)`/);
     const outputs = outm ? (outm[1].match(/\[\[[^\]]+\]\]/g) || []) : [];
     const projm = rest.match(/\[project::\s*(\[\[[^\]]+\]\])\s*\]/) || rest.match(/`project:\s*(\[\[[^\]]+\]\])`/);
     const project = projm ? projm[1] : null;
     let title = rest
       .replace(/\[project::\s*\[\[[^\]]+\]\]\s*\]/g, '')
-      .replace(/`[^`]*`/g, '').replace(/✅\s*\d{4}-\d{2}-\d{2}/g, '').replace(/📅\s*\d{4}-\d{2}-\d{2}/g, '')
-      .replace(/⚠️\s*QUÁ HẠN/gi, '').replace(/[🔴🟡🟢🤖⚠️📌📅🔗📊🔥⏰]/g, '').replace(/\*\*/g, '')
+      .replace(/`[^`]*`/g, '').replace(/✅\s*\d{4}-\d{2}-\d{2}/g, '').replace(/📅\s*\d{4}-\d{2}-\d{2}/g, '').replace(/🛫\s*\d{4}-\d{2}-\d{2}/g, '')
+      .replace(/⚠️\s*QUÁ HẠN/gi, '').replace(/[🔴🟡🟢🔽🤖👤🛫⚠️📌📅🔗📊🔥⏰]/g, '').replace(/\*\*/g, '')
       .replace(/\s{2,}/g, ' ').trim();
     if (!title) title = '(không tiêu đề)';
     cur = {
-      lane, laneName: laneName(lane), title, done, owner, date, s, e, status, over, pri,
-      id: idm ? idm[1] : null, pct: pctm ? +pctm[1] : null, next: nextm ? nextm[1].trim() : null, outputs, project,
+      lane, laneName: laneName(lane), title, done, owner, owners, date, startDate, s, e, status, over, pri, prio,
+      id: idm ? idm[1] : null, pct: pctm ? +pctm[1] : null, next: nextm ? nextm[1].trim() : null, note: notem ? notem[1].trim() : null, eisen: eim ? eim[1] : null, outputs, project,
       check: [], raw, line: i, blockStart: i, blockEnd: i, laneIcon: laneIcon(lane), synced: isSyncedLane(lane)
     };
     tasks.push(cur);
@@ -400,23 +427,85 @@ function setDateRaw(raw, isoDate) {
   if (/📅\s*\d{4}-\d{2}-\d{2}/.test(raw)) return raw.replace(/📅\s*\d{4}-\d{2}-\d{2}/, '📅 ' + isoDate);
   return raw.replace(/(\*\*[\s\S]*?\*\*)/, '$1 📅 ' + isoDate);
 }
+function setStartDateRaw(raw, isoDate) {
+  if (!isoDate) return raw.replace(/\s*🛫\s*\d{4}-\d{2}-\d{2}/, '');
+  if (/🛫\s*\d{4}-\d{2}-\d{2}/.test(raw)) return raw.replace(/🛫\s*\d{4}-\d{2}-\d{2}/, '🛫 ' + isoDate);
+  return raw.replace(/(\*\*[\s\S]*?\*\*)/, '$1 🛫 ' + isoDate);
+}
 function setTimeRaw(raw, s, e) {
   if (!s || !e) return raw.replace(/\s*`⏰[^`]*`/, '');
   const chip = '`⏰ ' + s + '–' + e + '`';
   if (/`⏰[^`]*`/.test(raw)) return raw.replace(/`⏰[^`]*`/, chip);
   return raw.replace(/\s*$/, '') + ' ' + chip;
 }
-function setPriRaw(raw, on) {
-  if (on) return /🔴/.test(raw) ? raw : raw.replace(/(\*\*[\s\S]*?\*\*)/, '$1 🔴');
-  return raw.replace(/\s*🔴/g, '');
+function setNoteRaw(raw, text) {
+  const t = (text || '').replace(/`/g, '').trim();
+  if (!t) return raw.replace(/\s*`note:[^`]*`/, '');
+  const chip = '`note: ' + t + '`';
+  if (/`note:[^`]*`/.test(raw)) return raw.replace(/`note:[^`]*`/, chip);
+  return raw.replace(/\s*$/, '') + ' ' + chip;
 }
-function setOwnerRaw(raw, name) {
-  const chip = '`👤 ' + name + '`';
-  if (/`👤[^`]*`/.test(raw)) return raw.replace(/`👤[^`]*`/, chip);
-  if (/`owner:[^`]*`/.test(raw)) return raw.replace(/`owner:[^`]*`/, chip);
-  return raw.replace(/(\*\*[\s\S]*?\*\*)/, '$1 ' + chip);
+function setEisenRaw(raw, code) {
+  if (!code) return raw.replace(/\s*`eisen:[^`]*`/, '');
+  const chip = '`eisen: ' + code + '`';
+  if (/`eisen:[^`]*`/.test(raw)) return raw.replace(/`eisen:[^`]*`/, chip);
+  return raw.replace(/\s*$/, '') + ' ' + chip;
 }
-function removeOwnerRaw(raw) { return raw.replace(/\s*`👤[^`]*`/, '').replace(/\s*`owner:[^`]*`/, ''); }
+// Priority 3 mức: high=🔴 (Cao), low=🔽 (Thấp), mid=không marker (mặc định).
+// Ưu tiên emoji (do UI set) > token `priority: x` (taxonomy import) > `Ưu tiên` legacy (chỉ trong backtick) > mid.
+function derivePrio(rest) {
+  if (/🔴/.test(rest)) return 'high';
+  if (/🟡/.test(rest)) return 'med';
+  if (/🔽/.test(rest)) return 'low';
+  const pm = rest.match(/priority:\s*(urgent|high|medium|low)/i);
+  if (pm) { const v = pm[1].toLowerCase(); return (v === 'urgent' || v === 'high') ? 'high' : (v === 'medium' ? 'med' : (v === 'low' ? 'low' : 'normal')); }
+  if (/`[^`]*Ưu tiên[^`]*`/.test(rest)) return 'high';
+  return 'normal';
+}
+function setPrioRaw(raw, level) {
+  const s = raw.replace(/\s*🔴/g, '').replace(/\s*🟡/g, '').replace(/\s*🔽/g, '').replace(/\s*`?\s*priority:\s*(?:urgent|high|medium|low)\s*`?/gi, '');
+  if (level === 'high') return s.replace(/(\*\*[\s\S]*?\*\*)/, '$1 🔴');
+  if (level === 'med') return s.replace(/(\*\*[\s\S]*?\*\*)/, '$1 🟡');
+  if (level === 'low') return s.replace(/(\*\*[\s\S]*?\*\*)/, '$1 🔽');
+  return s;
+}
+// Owner model: mỗi người là 1 chip riêng `👤 Tên` (người) / `🤖 Tên` (AI).
+function parseOwners(rest) {
+  const out = [], re = /`\s*(👤|🤖)\s*([^`]+?)\s*`/g; let m;
+  while ((m = re.exec(rest))) { const nm = m[2].trim(); if (nm && nm !== '—') out.push({ name: nm, kind: m[1] === '🤖' ? 'ai' : 'human' }); }
+  if (!out.length) { const lm = rest.match(/`owner:\s*([^`]+)`/); if (lm) { const nm = lm[1].trim(); if (nm && nm !== '—') out.push({ name: nm, kind: 'human' }); } }
+  return out;
+}
+// Bóc sạch mọi mảnh owner (chip 👤/🤖 chuẩn, owner: cũ, và mảnh bare không backtick) — diệt lồng đúp.
+function stripOwnersRaw(raw) {
+  let s = raw, prev;
+  do { prev = s; s = s.replace(/\s*`\s*(?:👤|🤖)\s*[^`]*`/, ''); } while (s !== prev);
+  s = s.replace(/\s*`owner:[^`]*`/g, '');
+  s = s.replace(/\s*(?:👤|🤖)[^`]*/g, '');
+  return s.replace(/``+/g, '').replace(/(\S)[ \t]{2,}/g, '$1 ').replace(/[ \t]+$/, '');
+}
+function setOwnersRaw(raw, owners) {
+  const clean = stripOwnersRaw(raw);
+  if (!owners || !owners.length) return clean;
+  const chips = owners.map(o => '`' + (o.kind === 'ai' ? '🤖' : '👤') + ' ' + o.name + '`').join(' ');
+  if (/\*\*[\s\S]*?\*\*/.test(clean)) return clean.replace(/(\*\*[\s\S]*?\*\*)/, '$1 ' + chips);
+  return clean.replace(/[ \t]+$/, '') + ' ' + chips;
+}
+// Đọc danh bạ: tự nhận dạng bảng token (cột 1 = `👤 Tên`/`🤖 Tên`) hoặc bảng phẳng | Tên | ID |.
+function parsePeopleTable(md) {
+  const rows = [];
+  md.split('\n').forEach(line => {
+    const m = line.match(/^\|([^|]+)\|([^|]*)\|/);
+    if (!m) return;
+    const c1 = m[1].trim();
+    const tok = c1.match(/^`?\s*(👤|🤖)\s*(.+?)\s*`?$/);
+    if (tok) { const nm = tok[2].trim(); if (nm) rows.push({ name: nm, kind: tok[1] === '🤖' ? 'ai' : 'human', id: null }); return; }
+    rows.push({ _plain: true, name: c1, id: /^\d+$/.test(m[2].trim()) ? m[2].trim() : null });
+  });
+  const rich = rows.filter(r => !r._plain);
+  if (rich.length) return rich;
+  return rows.filter(r => r.name && r.name !== 'Tên' && !/^:?-+:?$/.test(r.name)).map(r => ({ name: r.name, id: r.id, kind: 'human' }));
+}
 function setOutputRaw(raw, links) {
   if (!links || !links.length) return raw.replace(/\s*`output:[^`]*`/, '');
   const chip = '`output: ' + links.map(l => '[[' + l + ']]').join(', ') + '`';
@@ -576,6 +665,33 @@ function deleteStepMd(md, key, idx) {
   }
   return lines.join('\n');
 }
+function editStepMd(md, key, idx, text) {
+  const { tasks } = parseTasks(md, '');
+  const t = findTask(tasks, key);
+  if (!t || !text) return md;
+  const lines = md.split('\n');
+  const b = blockRangeOf(lines, t);
+  let n = -1;
+  for (let i = b.start + 1; i <= b.end; i++) {
+    if (/^[ \t]+- \[[ xX]\]/.test(lines[i])) {
+      n++;
+      if (n === idx) { const pre = lines[i].match(/^([ \t]+- \[[ xX]\]\s+)/)[1]; const own = parseOwners(lines[i])[0] || null; lines[i] = setOwnersRaw(pre + text, own ? [own] : []); break; }
+    }
+  }
+  return lines.join('\n');
+}
+function setStepOwnerMd(md, key, idx, owner) {
+  const { tasks } = parseTasks(md, '');
+  const t = findTask(tasks, key);
+  if (!t) return md;
+  const lines = md.split('\n');
+  const b = blockRangeOf(lines, t);
+  let n = -1;
+  for (let i = b.start + 1; i <= b.end; i++) {
+    if (/^[ \t]+- \[[ xX]\]/.test(lines[i])) { n++; if (n === idx) { lines[i] = setOwnersRaw(lines[i], owner ? [owner] : []); break; } }
+  }
+  return lines.join('\n');
+}
 function renameLaneMd(md, oldName, newName) {
   const lines = md.split('\n');
   const rng = findLane(lines, oldName);
@@ -720,6 +836,7 @@ class PieLiveView extends obsidian.ItemView {
     this.renderHeaderBar(main);
     if (this.view === 'board') this.renderBoard(main);
     else if (this.view === 'list') this.renderList(main);
+    else if (this.view === 'agenda') this.renderAgenda(main);
     else if (this.view === 'calendar') this.renderCalendar(main);
     else if (this.view === 'dashboard') this.renderDashboard(main);
     this.drawerEl = c.createEl('aside', { cls: 'pb-drawer' });
@@ -749,7 +866,7 @@ class PieLiveView extends obsidian.ItemView {
     const chip = rail.createEl('button', { cls: 'pb-brand pb-profchip', attr: { title: tr('Bảng: ') + p.name + ' — bấm để đổi' } });
     paintProfChip(chip, p, this.app);
     chip.addEventListener('click', ev => { ev.stopPropagation(); this.openProfileMenu(chip); });
-    const navs = [['board', I.board, tr('Bảng')], ['list', I.listNav, tr('Danh sách')], ['calendar', I.calNav, tr('Lịch')], ['dashboard', I.dash, tr('Thống kê')]];
+    const navs = [['board', I.board, tr('Bảng')], ['list', I.listNav, tr('Danh sách')], ['agenda', I.bell, tr('Nhắc lịch')], ['calendar', I.calNav, tr('Lịch')], ['dashboard', I.dash, tr('Thống kê')]];
     navs.forEach(([v, ic, title]) => {
       const b = rail.createEl('button', { cls: 'pb-railbtn' + (this.view === v ? ' on' : ''), attr: { title } });
       b.innerHTML = ic;
@@ -792,6 +909,9 @@ class PieLiveView extends obsidian.ItemView {
     lanes.forEach((laneRaw, li) => {
       const all = tasks.filter(t => t.lane === laneRaw);
       const list = all.filter(t => this.visible(t));
+      list.sort((a, b) => (PRIO_ORDER[b.prio || 'normal'] - PRIO_ORDER[a.prio || 'normal'])
+        || ((a.date || '9999-99-99').localeCompare(b.date || '9999-99-99'))
+        || (a.line - b.line));
       const nm = laneName(laneRaw);
       const tone = LANE_TONES[li % LANE_TONES.length];
       const laneColor = ((this.plugin.prof().laneStyles || {})[nm] || {}).color || TONE[tone];
@@ -879,12 +999,12 @@ class PieLiveView extends obsidian.ItemView {
     const rs = t.done ? 'completed' : (t.status && t.status !== 'open' ? t.status : 'open');
     const RS = STATES[rs];
     const cc = t.over ? STATES.over.c : RS.c;
-    const card = colEl.createEl('div', { cls: 'ev is-' + rs + (t.over ? ' ov' : '') + (taskKey(t) === this.selId ? ' sel' : ''), attr: { role: 'button', tabindex: '0', draggable: 'true' } });
+    const card = colEl.createEl('div', { cls: 'ev is-' + rs + (t.over ? ' ov' : '') + (t.prio === 'high' && !t.done ? ' pri-high' : '') + (taskKey(t) === this.selId ? ' sel' : ''), attr: { role: 'button', tabindex: '0', draggable: 'true' } });
     card.dataset.key = taskKey(t);
     card.style.setProperty('--c', cc); card.style.setProperty('--sc', cc);
     const top = card.createEl('div', { cls: 'ev-top' });
     const tile = top.createEl('span', { cls: 'ev-tile' }); tile.innerHTML = I[cardIcon(t)] || I.list;
-    if (t.date || t.s) { const chip = top.createEl('span', { cls: 'ev-time-chip' }); chip.innerHTML = I.clock; let x = t.date ? fmtDate(t.date) : ''; if (t.s && t.e) x += (x ? ' · ' : '') + t.s + '–' + t.e; chip.appendText(x); }
+    if (t.startDate || t.date || t.s) { const chip = top.createEl('span', { cls: 'ev-time-chip' }); chip.innerHTML = I.clock; let x = ''; if (t.startDate && t.date && t.startDate !== t.date) x = fmtDate(t.startDate) + '→' + fmtDate(t.date); else if (t.date) x = fmtDate(t.date); else if (t.startDate) x = fmtDate(t.startDate); if (t.s && t.e) x += (x ? ' · ' : '') + t.s + '–' + t.e; chip.appendText(x); }
     const title = card.createEl('div', { cls: 'ev-title' });
     if (t.pri && !t.done) title.createEl('span', { cls: 'ev-pri' });
     title.appendText(t.title);
@@ -893,15 +1013,18 @@ class PieLiveView extends obsidian.ItemView {
     const state = chips.createEl('span', { cls: 'ev-state' }); state.innerHTML = SI[rs] || SI.dot; state.appendText(tr(RS.lab));
     if (t.over) { const ov = chips.createEl('span', { cls: 'ev-over' }); ov.innerHTML = SI.over; ov.appendText(tr('Quá hạn')); }
     if (t.check.length) { const cc = chips.createEl('span', { cls: 'ev-check', text: '✓ ' + t.check.filter(x => x[1]).length + '/' + t.check.length }); }
+    if (t.eisen && EISEN[t.eisen]) { const eb = chips.createEl('span', { cls: 'ev-eisen', text: EISEN[t.eisen].short }); eb.style.color = EISEN[t.eisen].c; eb.style.background = 'color-mix(in srgb,' + EISEN[t.eisen].c + ' 15%,transparent)'; }
     if (this.plugin.settings.stepsOnCard && t.check.length) {
       const steps = bottom.createEl('div', { cls: 'ev-steps' });
       t.check.forEach((x, i) => {
         const st = steps.createEl('div', { cls: 'ev-step' + (x[1] ? ' ok' : '') });
         st.createEl('span', { cls: 'ev-step-box' }).innerHTML = I.check;
         st.createEl('span', { cls: 'ev-step-tx', text: x[0] });
+        if (x[2]) avEl(st, x[2].name, 'ev-step-av');
         st.addEventListener('click', ev => { ev.stopPropagation(); this.plugin.toggleCheck(t, i); });
       });
     }
+    if (t.note) { const nt = bottom.createEl('div', { cls: 'ev-note' }); nt.appendText(t.note); }
     const people = bottom.createEl('div', { cls: 'ev-people' });
     const owners = ownersOf(t);
     if (owners.length) { const av = people.createEl('span', { cls: 'avatars' }); owners.slice(0, 3).forEach(o => avEl(av, o)); people.createEl('span', { cls: 'ev-going', text: owners.length > 1 ? owners.length + tr(' người') : owners[0] }); }
@@ -1030,7 +1153,10 @@ class PieLiveView extends obsidian.ItemView {
     const close = dh.createEl('button', { cls: 'dw-close' }); close.innerHTML = I.x; close.addEventListener('click', () => this.closeDrawer());
     // when
     const when = scroll.createEl('div', { cls: 'dw-when' }); when.innerHTML = I.clock;
-    let w = t.date ? fmtDateFull(t.date) : tr('Chưa có ngày'); if (t.s && t.e) w += ' · ' + t.s + ' → ' + t.e;
+    let w = t.date ? fmtDateFull(t.date) : tr('Chưa có ngày');
+    if (t.startDate && t.date && t.startDate !== t.date) w = fmtDateFull(t.startDate) + ' → ' + fmtDateFull(t.date);
+    else if (t.startDate && !t.date) w = fmtDateFull(t.startDate);
+    if (t.s && t.e) w += ' · ' + t.s + ' → ' + t.e;
     when.createEl('span', { text: w });
     const badge = when.createEl('span', { cls: 'badge', text: tr(S.lab) }); badge.style.background = 'color-mix(in srgb,' + S.c + ' 18%,transparent)'; badge.style.color = S.c;
     // dự án (project cha)
@@ -1049,22 +1175,42 @@ class PieLiveView extends obsidian.ItemView {
       const addP = secPr.createEl('div', { cls: 'add-more' }); addP.innerHTML = I.folder; addP.appendText(tr('Gắn vào dự án'));
       addP.addEventListener('click', () => this.plugin.pickProject(t));
     }
+    // ghi chú (nhắc thông tin quan trọng)
+    const secN = scroll.createEl('div', { cls: 'dw-sec' }); secN.createEl('div', { cls: 'eyebrow', text: tr('Ghi chú') });
+    const ntIn = secN.createEl('input', { cls: 'dt-in dw-note-in', attr: { type: 'text', placeholder: tr('Ghi chú nhắc nhở…') } });
+    if (t.note) ntIn.value = t.note;
+    ntIn.addEventListener('change', () => this.plugin.setNote(t, ntIn.value.trim()));
     // time editors
     const secT = scroll.createEl('div', { cls: 'dw-sec' }); secT.createEl('div', { cls: 'eyebrow', text: tr('Thời gian') });
     const grid = secT.createEl('div', { cls: 'dt-grid' });
-    const mkField = (lab, type, val, on) => { const f = grid.createEl('label', { cls: 'dt-field' }); f.createEl('span', { text: lab }); const inp = f.createEl('input', { cls: 'dt-in', attr: { type } }); if (val) inp.value = val; inp.addEventListener('change', () => on(inp.value)); return inp; };
-    mkField(tr('Ngày'), 'date', t.date || '', v => this.plugin.setDate(t, v));
-    mkField(tr('Bắt đầu'), 'time', t.s || '', v => this.plugin.setTime(t, v, t.e || v));
-    mkField(tr('Kết thúc'), 'time', t.e || '', v => this.plugin.setTime(t, t.s || v, v));
+    const mkGroup = (lab, timeVal, onTime, dateVal, onDate) => {
+      const g = grid.createEl('div', { cls: 'dt-group' });
+      g.createEl('span', { cls: 'dt-group-lab', text: lab });
+      const row = g.createEl('div', { cls: 'dt-group-row' });
+      const mk = (type, val, on) => { const inp = row.createEl('input', { cls: 'dt-in dt-in-' + type, attr: { type } }); if (val) inp.value = val; inp.addEventListener('change', () => on(inp.value)); return inp; };
+      mk('time', timeVal, onTime);
+      mk('date', dateVal, onDate);
+    };
+    mkGroup(tr('Bắt đầu'), t.s || '', v => this.plugin.setTime(t, v, t.e || v), t.startDate || '', v => this.plugin.setStartDate(t, v));
+    mkGroup(tr('Kết thúc'), t.e || '', v => this.plugin.setTime(t, t.s || v, v), t.date || '', v => this.plugin.setDate(t, v));
     // status
     const active = this.activeStatus(t);
     const secS = scroll.createEl('div', { cls: 'dw-sec' }); secS.createEl('div', { cls: 'eyebrow', text: tr('Trạng thái') });
-    const stSel = secS.createEl('div', { cls: 'st-select' });
-    SETTABLE.forEach(k => { const o = stSel.createEl('div', { cls: 'st-opt' + (active === k ? ' on' : ''), attr: { role: 'button', tabindex: '0' } }); o.style.setProperty('--oc', STATES[k].c); o.innerHTML = SI[k] || SI.dot; o.appendText(tr(STATES[k].lab)); o.addEventListener('click', () => this.plugin.setStatus(t, k)); });
+    const dd = secS.createEl('div', { cls: 'dw-dd' });
+    const trig = dd.createEl('button', { cls: 'dw-dd-trig', attr: { type: 'button' } });
+    const ac = this.activeStatus(t) || 'open'; const aic = trig.createEl('span', { cls: 'dw-dd-ic' }); aic.innerHTML = SI[ac] || SI.dot; aic.style.color = STATES[ac].c; trig.createEl('span', { cls: 'dw-dd-lb', text: tr(STATES[ac].lab) }); const ch = trig.createEl('span', { cls: 'dw-dd-ch' }); ch.innerHTML = I.chev;
+    const menu = dd.createEl('div', { cls: 'dw-dd-menu' });
+    const closeDD = () => { dd.classList.remove('open'); if (this._ddOutside) { document.removeEventListener('mousedown', this._ddOutside); this._ddOutside = null; } };
+    SETTABLE.forEach(k => { const o = menu.createEl('button', { cls: 'dw-dd-opt' + (active === k ? ' on' : ''), attr: { type: 'button' } }); const ic = o.createEl('span', { cls: 'dw-dd-ic' }); ic.innerHTML = SI[k] || SI.dot; ic.style.color = STATES[k].c; o.createEl('span', { text: tr(STATES[k].lab) }); o.addEventListener('click', ev => { ev.stopPropagation(); closeDD(); this.plugin.setStatus(t, k); }); });
+    trig.addEventListener('click', ev => { ev.stopPropagation(); const willOpen = !dd.classList.contains('open'); if (willOpen) { dd.classList.add('open'); this._ddOutside = e => { if (!dd.contains(e.target)) closeDD(); }; setTimeout(() => document.addEventListener('mousedown', this._ddOutside), 0); } else closeDD(); });
     // priority
     const secP = scroll.createEl('div', { cls: 'dw-sec' }); secP.createEl('div', { cls: 'eyebrow', text: tr('Độ ưu tiên') });
     const pSel = secP.createEl('div', { cls: 'st-select' });
-    [['high', t.pri], ['normal', !t.pri]].forEach(([k, on]) => { const o = pSel.createEl('div', { cls: 'st-opt' + (on ? ' on' : ''), attr: { role: 'button' }, text: tr(PRI[k].lab) }); o.style.setProperty('--oc', PRI[k].c); o.addEventListener('click', () => this.plugin.setPriority(t, k === 'high')); });
+    ['high', 'med', 'normal', 'low'].forEach(k => { const on = (t.prio || 'normal') === k; const o = pSel.createEl('div', { cls: 'st-opt' + (on ? ' on' : ''), attr: { role: 'button' }, text: tr(PRI[k].lab) }); o.style.setProperty('--oc', PRI[k].c); o.addEventListener('click', () => this.plugin.setPriority(t, k)); });
+    // ma trận Eisenhower (nhãn chiến lược, không ảnh hưởng sort)
+    const secE = scroll.createEl('div', { cls: 'dw-sec' }); secE.createEl('div', { cls: 'eyebrow', text: tr('Ma trận Eisenhower') });
+    const eSel = secE.createEl('div', { cls: 'st-select' });
+    ['q1', 'q2', 'q3', 'q4'].forEach(k => { const on = t.eisen === k; const o = eSel.createEl('div', { cls: 'st-opt' + (on ? ' on' : ''), attr: { role: 'button', title: tr(EISEN[k].lab) }, text: EISEN[k].short }); o.style.setProperty('--oc', EISEN[k].c); o.addEventListener('click', () => this.plugin.setEisen(t, t.eisen === k ? null : k)); });
     // move lane (thay cho kéo-thả trên mobile)
     const secM = scroll.createEl('div', { cls: 'dw-sec' });
     secM.createEl('div', { cls: 'eyebrow', text: tr('Chuyển lane') });
@@ -1086,7 +1232,7 @@ class PieLiveView extends obsidian.ItemView {
     const secC = scroll.createEl('div', { cls: 'dw-sec' });
     const doneN = t.check.filter(x => x[1]).length;
     secC.createEl('div', { cls: 'eyebrow', text: tr('Việc kế tiếp · ') + doneN + '/' + t.check.length });
-    t.check.forEach((x, i) => { const ci = secC.createEl('div', { cls: 'check-item' + (x[1] ? ' ok' : '') }); const box = ci.createEl('span', { cls: 'check-box' }); box.innerHTML = I.check; ci.createEl('span', { cls: 'ci-text', text: x[0] }); const cx = ci.createEl('button', { cls: 'pb-x', attr: { title: tr('Xoá bước') } }); cx.innerHTML = I.x; cx.addEventListener('click', ev => { ev.stopPropagation(); this.plugin.deleteStep(t, i); }); ci.addEventListener('click', () => this.plugin.toggleCheck(t, i)); });
+    t.check.forEach((x, i) => { const ci = secC.createEl('div', { cls: 'check-item' + (x[1] ? ' ok' : '') }); const box = ci.createEl('span', { cls: 'check-box' }); box.innerHTML = I.check; ci.createEl('span', { cls: 'ci-text', text: x[0] }); if (x[2]) { const av = avEl(ci, x[2].name, 'ci-av'); av.title = x[2].name; } const ce = ci.createEl('button', { cls: 'pb-x', attr: { title: tr('Sửa / gán người việc con') } }); ce.innerHTML = I.edit; ce.addEventListener('click', ev => { ev.stopPropagation(); this.plugin.editStep(t, i, x[0], x[2] || null); }); const cx = ci.createEl('button', { cls: 'pb-x', attr: { title: tr('Xoá bước') } }); cx.innerHTML = I.x; cx.addEventListener('click', ev => { ev.stopPropagation(); this.plugin.deleteStep(t, i); }); ci.addEventListener('click', () => this.plugin.toggleCheck(t, i)); });
     if (t.next && !t.check.length) secC.createEl('p', { cls: 'dw-desc', text: t.next });
     const addStep = secC.createEl('div', { cls: 'add-more' }); addStep.innerHTML = I.plus; addStep.appendText(tr('Thêm bước'));
     addStep.addEventListener('click', () => this.plugin.addStep(t));
@@ -1153,6 +1299,45 @@ class PieLiveView extends obsidian.ItemView {
       toI.addEventListener('change', () => { this.fltTo = toI.value; this.render(); });
     }
   }
+  // ---------- AGENDA (Nhắc lịch: quá hạn / hôm nay / sắp tới) ----------
+  renderAgenda(main) {
+    const pane = main.createEl('div', { cls: 'pb-viewpane' });
+    pane.createEl('div', { cls: 'pb-vh', text: tr('Nhắc lịch') });
+    const tod = today();
+    const shift = (iso, d) => { const dt = new Date(iso + 'T00:00:00'); dt.setDate(dt.getDate() + d); return dt.toISOString().slice(0, 10); };
+    const soon = shift(tod, 7);
+    const endOf = t => t.date || t.startDate || null;
+    const open = this.allTasks().filter(t => !t.done && this.cardState(t) !== 'completed');
+    const seen = new Set();
+    const take = arr => arr.filter(t => { const k = taskKey(t); if (seen.has(k)) return false; seen.add(k); return true; });
+    const overdue = take(open.filter(t => endOf(t) && endOf(t) < tod));
+    const todayT = take(open.filter(t => { const s = t.startDate || t.date, e = t.date || t.startDate; return e && s <= tod && e >= tod; }));
+    const upcoming = take(open.filter(t => { const s = t.startDate || t.date; return s && s > tod && s <= soon; }));
+    const groups = [[tr('Quá hạn'), overdue, STATES.over.c], [tr('Hôm nay'), todayT, STATES.doing.c], [tr('Sắp tới (7 ngày)'), upcoming, STATES.pending.c]];
+    let any = false;
+    groups.forEach(([label, rows, color]) => {
+      if (!rows.length) return;
+      any = true;
+      rows.sort((a, b) => ((endOf(a) || '9999') + (a.s || '')).localeCompare((endOf(b) || '9999') + (b.s || '')));
+      const sec = pane.createEl('div', { cls: 'pb-agenda-sec' });
+      const h = sec.createEl('div', { cls: 'pb-agenda-h' }); h.style.setProperty('--ac', color);
+      h.createEl('span', { cls: 'pb-agenda-dot' }); h.appendText(label + ' · ' + rows.length);
+      rows.forEach(t => {
+        const st = this.cardState(t), S = STATES[st];
+        const row = sec.createEl('div', { cls: 'pb-lrow' }); row.dataset.key = taskKey(t);
+        const dot = row.createEl('span', { cls: 'pb-ldot' }); dot.style.background = S.c;
+        const ti = row.createEl('span', { cls: 'pb-ltitle' }); if (t.prio === 'high') ti.createEl('span', { cls: 'ev-pri' }); ti.appendText(t.title);
+        row.createEl('span', { cls: 'pb-lmeta', text: t.laneName });
+        const as = row.createEl('span', { cls: 'pb-lassignee' }); const owners = ownersOf(t); if (owners.length) { avEl(as, owners[0]); as.createEl('span', { cls: 'anm', text: owners[0] + (owners.length > 1 ? ' +' + (owners.length - 1) : '') }); } else as.createEl('span', { cls: 'anm', text: '—' });
+        let dtxt = ''; if (t.startDate && t.date && t.startDate !== t.date) dtxt = fmtDate(t.startDate) + '→' + fmtDate(t.date); else if (t.date) dtxt = fmtDate(t.date); else if (t.startDate) dtxt = fmtDate(t.startDate); if (t.s) dtxt += ' ' + t.s;
+        row.createEl('span', { cls: 'pb-lmeta', text: dtxt || '—' });
+        const chip = row.createEl('span', { cls: 'pb-lchip', text: tr(S.lab) }); chip.style.color = S.c; chip.style.background = 'color-mix(in srgb,' + S.c + ' 15%,transparent)';
+        row.addEventListener('click', () => this.openCard(t));
+      });
+    });
+    if (!any) pane.createEl('div', { cls: 'pb-empty', text: tr('Không có việc quá hạn, hôm nay hay sắp tới.') });
+  }
+
   renderList(main) {
     const pane = main.createEl('div', { cls: 'pb-viewpane' });
     pane.createEl('div', { cls: 'pb-vh', text: tr('Danh sách công việc') });
@@ -1249,6 +1434,44 @@ class PieDemoView extends obsidian.ItemView {
 }
 
 // ---------- prompt/confirm modal (Electron chặn window.prompt) ----------
+class StepEditModal extends obsidian.Modal {
+  constructor(app, plugin, text, owner, onSubmit) { super(app); this.plugin = plugin; this.text0 = text || ''; this.owner = owner || null; this.onSubmit = onSubmit; }
+  onOpen() {
+    const { contentEl, titleEl } = this;
+    titleEl.setText(tr('Sửa việc con'));
+    const inp = contentEl.createEl('input', { attr: { type: 'text' } });
+    inp.style.cssText = 'width:100%;margin-top:8px;'; inp.value = this.text0;
+    // hàng người phụ trách
+    contentEl.createEl('div', { text: tr('Người phụ trách'), attr: { style: 'font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;opacity:.6;margin:14px 0 6px;' } });
+    const row = contentEl.createEl('div', { attr: { style: 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;' } });
+    const box = row.createEl('div', { attr: { style: 'display:flex;align-items:center;gap:8px;min-width:120px;' } });
+    const renderOwner = () => {
+      box.empty();
+      if (this.owner) { avEl(box, this.owner.name, 'ci-av'); box.createEl('span', { text: this.owner.name, attr: { style: 'font-size:13px;' } }); }
+      else { const ic = box.createEl('span', { attr: { style: 'display:inline-flex;align-items:center;opacity:.55;' } }); ic.innerHTML = I.person; const s = ic.querySelector('svg'); if (s) { s.style.width = '18px'; s.style.height = '18px'; } box.createEl('span', { text: tr('Chưa gán'), attr: { style: 'font-size:13px;opacity:.5;' } }); }
+    };
+    renderOwner();
+    const pick = row.createEl('button', { attr: { type: 'button', title: tr('Gán / Đổi người') } });
+    pick.innerHTML = I.userPlus; pick.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;padding:6px 9px;';
+    { const s = pick.querySelector('svg'); if (s) { s.style.width = '17px'; s.style.height = '17px'; } }
+    pick.addEventListener('click', async () => {
+      const people = await this.plugin.loadPeople();
+      if (!people.length) { const nm = ((await askText(this.app, 'Người phụ trách việc con')) || '').trim(); if (nm) { this.owner = { name: nm, kind: 'human' }; renderOwner(); } return; }
+      new PeoplePickerModal(this.app, people, async p => { if (p._new) await this.plugin.addPersonToFile(p.name); this.owner = { name: p.name, kind: p.kind === 'ai' ? 'ai' : 'human' }; renderOwner(); }).open();
+    });
+    const clr = row.createEl('button', { attr: { type: 'button', title: tr('Gỡ người'), 'aria-label': tr('Gỡ người') } });
+    clr.innerHTML = I.x; clr.style.cssText = 'color:#E5484D;display:inline-flex;align-items:center;justify-content:center;padding:6px 8px;';
+    { const s = clr.querySelector('svg'); if (s) { s.style.width = '16px'; s.style.height = '16px'; } }
+    clr.addEventListener('click', () => { this.owner = null; renderOwner(); });
+    const btns = contentEl.createDiv({ attr: { style: 'display:flex;gap:8px;justify-content:flex-end;margin-top:18px;' } });
+    btns.createEl('button', { text: tr('Huỷ'), attr: { type: 'button' } }).addEventListener('click', () => this.close());
+    const submit = () => { const v = inp.value.trim(); this.done = true; this.close(); this.onSubmit(v, this.owner); };
+    btns.createEl('button', { text: 'OK', cls: 'mod-cta', attr: { type: 'button' } }).addEventListener('click', submit);
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submit(); } });
+    window.setTimeout(() => { inp.focus(); inp.select(); }, 0);
+  }
+  onClose() { this.contentEl.empty(); }
+}
 class PromptModal extends obsidian.Modal {
   constructor(app, opts, resolve) { super(app); this.opts = opts; this.resolve = resolve; this.done = false; }
   onOpen() {
@@ -1341,7 +1564,8 @@ class PeoplePickerModal extends obsidian.SuggestModal {
   renderSuggestion(p, el) {
     if (p._new) { el.createEl('div', { text: tr('➕ Thêm "') + p.name + '" (người mới)' }); return; }
     el.createEl('div', { text: p.name });
-    if (p.id) el.createEl('small', { text: '1Office #' + p.id, attr: { style: 'opacity:.55; margin-left:6px;' } });
+    if (p.kind === 'ai') el.createEl('small', { text: 'AI', attr: { style: 'opacity:.55; margin-left:6px;' } });
+    else if (p.id) el.createEl('small', { text: '1Office #' + p.id, attr: { style: 'opacity:.55; margin-left:6px;' } });
   }
   onChooseSuggestion(p) { this.onChoose(p); }
 }
@@ -1549,6 +1773,25 @@ class PieTasksPlugin extends obsidian.Plugin {
     this.registerEvent(this.app.workspace.on('css-change', () => this.refreshLiveViews()));
     // Vault index có thể chưa sẵn sàng lúc onload (nhất là mobile / khi view được khôi phục) → load khi layout ready
     this.app.workspace.onLayoutReady(() => this.reload());
+    // Nhắc lịch (a): khi app đang mở, mỗi phút quét task tới giờ bắt đầu/kết thúc → Notice 1 lần/ngày/mốc.
+    this.registerInterval(window.setInterval(() => this.checkReminders(), 60000));
+  }
+
+  checkReminders() {
+    try {
+      const data = this.taskData; if (!data || !data.tasks || !data.tasks.length) return;
+      const tod = today();
+      const now = new Date();
+      const hm = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+      if (this._notifDay !== tod) { this._notified = {}; this._notifDay = tod; }
+      this._notified = this._notified || {};
+      data.tasks.forEach(t => {
+        if (t.done) return;
+        const key = taskKey(t);
+        if ((t.startDate || t.date) === tod && t.s && t.s === hm && !this._notified['s' + key]) { this._notified['s' + key] = 1; new obsidian.Notice(t.title + ' — đến giờ bắt đầu (' + t.s + ')'); }
+        if (t.date === tod && t.e && t.e === hm && !this._notified['e' + key]) { this._notified['e' + key] = 1; new obsidian.Notice(t.title + ' — đến giờ kết thúc (' + t.e + ')'); }
+      });
+    } catch (e) { }
   }
 
   // ---- Multi-profile: mỗi profile = 1 bảng (file .md riêng, state riêng) ----
@@ -1769,42 +2012,46 @@ class PieTasksPlugin extends obsidian.Plugin {
   setStatus(t, k) { return this.mutate(md => editLineMd(md, taskKey(t), l => setStatusRaw(l, k)), this.syncWarn(t)); }
   setTitle(t, v) { return this.mutate(md => editLineMd(md, taskKey(t), l => setTitleRaw(l, v)), this.syncWarn(t)); }
   setDate(t, v) { return this.mutate(md => editLineMd(md, taskKey(t), l => setDateRaw(l, v)), this.syncWarn(t)); }
+  setStartDate(t, v) { return this.mutate(md => editLineMd(md, taskKey(t), l => setStartDateRaw(l, v)), this.syncWarn(t)); }
+  setNote(t, v) { return this.mutate(md => editLineMd(md, taskKey(t), l => setNoteRaw(l, v)), this.syncWarn(t)); }
+  setEisen(t, code) { return this.mutate(md => editLineMd(md, taskKey(t), l => setEisenRaw(l, code)), this.syncWarn(t)); }
   setTime(t, s, e) { return this.mutate(md => editLineMd(md, taskKey(t), l => setTimeRaw(l, s, e)), this.syncWarn(t)); }
-  setPriority(t, on) { return this.mutate(md => editLineMd(md, taskKey(t), l => setPriRaw(l, on)), this.syncWarn(t)); }
+  setPriority(t, level) { return this.mutate(md => editLineMd(md, taskKey(t), l => setPrioRaw(l, level)), this.syncWarn(t)); }
   toggleCheck(t, i) { return this.mutate(md => toggleCheckMd(md, taskKey(t), i)); }
   async loadPeople() {
     const path = obsidian.normalizePath(this.peoplePathFor());
     const f = this.app.vault.getAbstractFileByPath(path);
     if (!(f instanceof obsidian.TFile)) return [];
-    const md = await this.app.vault.read(f);
-    const out = [];
-    md.split('\n').forEach(line => {
-      const m = line.match(/^\|([^|]+)\|([^|]*)\|/);
-      if (!m) return;
-      const name = m[1].trim();
-      if (!name || name === 'Tên' || /^:?-+:?$/.test(name)) return;
-      out.push({ name, id: /^\d+$/.test(m[2].trim()) ? m[2].trim() : null });
-    });
-    return out;
+    return parsePeopleTable(await this.app.vault.read(f));
   }
   async addPersonToFile(name) {
     const path = obsidian.normalizePath(this.peoplePathFor());
     const f = this.app.vault.getAbstractFileByPath(path);
     if (!(f instanceof obsidian.TFile)) return;
     const md = await this.app.vault.read(f);
+    if (/^\|\s*`?\s*(?:👤|🤖)/m.test(md)) return; // danh bạ dạng token (SSOT) — không tự sửa file này
     const esc = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     if (new RegExp('^\\|\\s*' + esc + '\\s*\\|', 'm').test(md)) return; // đã có
     const nw = md.replace(/\s*$/, '') + '\n| ' + name + ' | — |  |  | thêm từ Pie Tasks |\n';
     await this.app.vault.modify(f, nw);
   }
-  _assignOwner(t, name) { const names = [...new Set([...ownersOf(t), name])]; return this.mutate(md => editLineMd(md, taskKey(t), l => setOwnerRaw(l, names.join(', '))), this.syncWarn(t)); }
+  _ownerList(t) { return ownersOf(t).map(n => ({ name: n, kind: (t.owners || []).find(o => o.name === n) ? (t.owners.find(o => o.name === n).kind) : 'human' })); }
+  _assignOwner(t, name, kind) { const base = this._ownerList(t); if (!base.some(o => o.name === name)) base.push({ name, kind: kind === 'ai' ? 'ai' : 'human' }); return this.mutate(md => editLineMd(md, taskKey(t), l => setOwnersRaw(l, base)), this.syncWarn(t)); }
   async addMember(t) {
     const people = await this.loadPeople();
     if (!people.length) { const nm = ((await askText(this.app, 'Thêm người phụ trách')) || '').trim(); if (nm) await this._assignOwner(t, nm); return; }
-    new PeoplePickerModal(this.app, people, async p => { if (p._new) await this.addPersonToFile(p.name); await this._assignOwner(t, p.name); }).open();
+    new PeoplePickerModal(this.app, people, async p => { if (p._new) await this.addPersonToFile(p.name); await this._assignOwner(t, p.name, p.kind); }).open();
   }
-  async removeMember(t, name) { const names = ownersOf(t).filter(o => o !== name); await this.mutate(md => editLineMd(md, taskKey(t), l => names.length ? setOwnerRaw(l, names.join(', ')) : removeOwnerRaw(l)), this.syncWarn(t)); }
+  async removeMember(t, name) { const base = this._ownerList(t).filter(o => o.name !== name); await this.mutate(md => editLineMd(md, taskKey(t), l => setOwnersRaw(l, base)), this.syncWarn(t)); }
   async addStep(t) { const s = ((await askText(this.app, 'Thêm bước (việc kế tiếp)')) || '').trim(); if (!s) return; await this.mutate(md => addStepMd(md, taskKey(t), s)); }
+  async editStep(t, i, curText, curOwner) {
+    new StepEditModal(this.app, this, curText, curOwner || null, async (text, owner) => {
+      if (text && text !== curText) await this.mutate(md => editStepMd(md, taskKey(t), i, text), this.syncWarn(t));
+      const a = owner ? owner.name + ':' + owner.kind : '';
+      const b = curOwner ? curOwner.name + ':' + curOwner.kind : '';
+      if (a !== b) await this.mutate(md => setStepOwnerMd(md, taskKey(t), i, owner), this.syncWarn(t));
+    }).open();
+  }
   deleteStep(t, i) { return this.mutate(md => deleteStepMd(md, taskKey(t), i)); }
   _outNames(t) { return (t.outputs || []).map(o => o.replace(/^\[\[|\]\]$/g, '')); }
   addOutput(t, name) { if (!name) return; const links = [...new Set([...this._outNames(t), name])]; return this.mutate(md => editLineMd(md, taskKey(t), l => setOutputRaw(l, links))); }
@@ -1880,6 +2127,7 @@ class PieSettingTab extends obsidian.PluginSettingTab {
   constructor(app, plugin) { super(app, plugin); this.plugin = plugin; }
   display() {
     const { containerEl } = this; containerEl.empty();
+    this.renderHeader(containerEl);
     new obsidian.Setting(containerEl).setName(tr('Ngôn ngữ')).setDesc(tr('Ngôn ngữ hiển thị của plugin (dữ liệu trong file vẫn giữ nguyên).'))
       .addDropdown(d => d.addOption('vi', 'Tiếng Việt').addOption('en', 'English')
         .setValue(this.plugin.settings.lang || 'vi')
@@ -1912,6 +2160,20 @@ class PieSettingTab extends obsidian.PluginSettingTab {
       .setName(tr('Hiện danh sách bước làm trên thẻ'))
       .setDesc(tr('Bật: thẻ việc hiện đầy đủ các bước (tick được ngay trên thẻ). Tắt: chỉ hiện số đếm dạng 0/3.'))
       .addToggle(t => t.setValue(!!this.plugin.settings.stepsOnCard).onChange(async v => { this.plugin.settings.stepsOnCard = v; await this.plugin.saveSettings(); this.plugin.refreshLiveViews(); }));
+  }
+  renderHeader(containerEl) {
+    const header = containerEl.createDiv({ cls: 'pt-settings-header' });
+    header.createDiv({ cls: 'pt-settings-avatar' }).insertAdjacentHTML('afterbegin', `<img src="${PT_LOGO}" alt="Pie Tasks" />`);
+    const info = header.createDiv({ cls: 'pt-settings-info' });
+    info.createDiv({ cls: 'pt-settings-title', text: 'Pie Tasks' });
+    info.createDiv({ cls: 'pt-settings-desc', text: tr('Quản lý công việc từ file Markdown — bảng, danh sách, lịch, dashboard.') });
+    const links = containerEl.createDiv({ cls: 'pt-settings-links' });
+    PT_CHANNELS.forEach(c => {
+      const btn = links.createEl('button', { cls: 'pt-settings-link' });
+      btn.insertAdjacentHTML('afterbegin', I[c.icon]);
+      btn.createSpan({ text: c.icon === 'cap' ? tr(c.label) : c.label });
+      btn.addEventListener('click', () => window.open(c.url, '_blank'));
+    });
   }
 }
 
