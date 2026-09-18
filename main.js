@@ -506,6 +506,43 @@ function parsePeopleTable(md) {
   if (rich.length) return rich;
   return rows.filter(r => r.name && r.name !== 'Tên' && !/^:?-+:?$/.test(r.name)).map(r => ({ name: r.name, id: r.id, kind: 'human' }));
 }
+// ---------- Tiến độ (v1, derived-live) ----------
+function daysBetween(a, b) { return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000); }
+// Thực tế: done→100 · có % tự nhập→pct · else đầu việc done/total · else null
+function actualProgress(t) {
+  if (t.done) return 100;
+  if (t.pct != null) return Math.max(0, Math.min(100, t.pct));
+  if (t.check && t.check.length) return Math.round(t.check.filter(x => x[1]).length / t.check.length * 100);
+  return null;
+}
+// Dự kiến theo thời gian: cần đủ 🛫 start + 📅 end
+function expectedProgress(t, todayISO) {
+  if (!t.startDate || !t.date) return null;
+  if (todayISO <= t.startDate) return 0;
+  if (todayISO >= t.date) return 100;
+  const total = daysBetween(t.startDate, t.date);
+  if (total <= 0) return 100;
+  return Math.max(0, Math.min(100, Math.round(daysBetween(t.startDate, todayISO) / total * 100)));
+}
+// Gộp: {actual, expected, diff, kind, color}; null nếu task không có tiến độ
+function progressInfo(t, todayISO) {
+  const actual = actualProgress(t);
+  if (actual == null) return null;
+  if (t.done) return { actual: 100, expected: null, diff: null, kind: 'done', color: STATES.completed.c };
+  const expected = expectedProgress(t, todayISO);
+  if (expected == null) return { actual, expected: null, diff: null, kind: 'plain', color: '#5B93D6' };
+  const diff = actual - expected;
+  const kind = diff >= 0 ? 'ontrack' : (diff >= -15 ? 'warn' : 'late');
+  const color = kind === 'ontrack' ? STATES.completed.c : (kind === 'warn' ? '#E5A44D' : '#E5484D');
+  return { actual, expected, diff, kind, color };
+}
+function setPctRaw(raw, pct) {
+  if (pct == null || pct === '') return raw.replace(/\s*`\d{1,3}%`/, '');
+  const n = Math.max(0, Math.min(100, Math.round(+pct)));
+  const chip = '`' + n + '%`';
+  if (/`\d{1,3}%`/.test(raw)) return raw.replace(/`\d{1,3}%`/, chip);
+  return raw.replace(/\s*$/, '') + ' ' + chip;
+}
 function setOutputRaw(raw, links) {
   if (!links || !links.length) return raw.replace(/\s*`output:[^`]*`/, '');
   const chip = '`output: ' + links.map(l => '[[' + l + ']]').join(', ') + '`';
@@ -785,7 +822,7 @@ class PieLiveView extends obsidian.ItemView {
     this.filter = 'all';
     this.anchor = today();
     this.rangeStart = today(); this.rangeEnd = today();
-    this.fltOwner = 'all'; this.fltPeriod = 'all'; this.fltStatus = 'all'; this.fltFrom = ''; this.fltTo = '';
+    this.fltOwner = 'all'; this.fltPeriod = 'all'; this.fltStatus = 'all'; this.fltFrom = ''; this.fltTo = ''; this.fltLate = false;
     this.calAnchor = today().slice(0, 7) + '-01';
     this.selId = null;
   }
@@ -1014,6 +1051,14 @@ class PieLiveView extends obsidian.ItemView {
     if (t.over) { const ov = chips.createEl('span', { cls: 'ev-over' }); ov.innerHTML = SI.over; ov.appendText(tr('Quá hạn')); }
     if (t.check.length) { const cc = chips.createEl('span', { cls: 'ev-check', text: '✓ ' + t.check.filter(x => x[1]).length + '/' + t.check.length }); }
     if (t.eisen && EISEN[t.eisen]) { const eb = chips.createEl('span', { cls: 'ev-eisen', text: EISEN[t.eisen].short }); eb.style.color = EISEN[t.eisen].c; eb.style.background = 'color-mix(in srgb,' + EISEN[t.eisen].c + ' 15%,transparent)'; }
+    const pgi = progressInfo(t, today());
+    if (pgi) {
+      const pr = bottom.createEl('div', { cls: 'ev-prog' });
+      const track = pr.createEl('div', { cls: 'ev-prog-track' });
+      const fill = track.createEl('div', { cls: 'ev-prog-fill' }); fill.style.width = pgi.actual + '%'; fill.style.background = pgi.color;
+      if (pgi.expected != null) { const mk = track.createEl('div', { cls: 'ev-prog-exp' }); mk.style.left = pgi.expected + '%'; mk.title = tr('Dự kiến ') + pgi.expected + '%'; }
+      const lb = pr.createEl('span', { cls: 'ev-prog-lb', text: pgi.actual + '%' + (pgi.diff != null && pgi.diff < 0 ? ' · ' + tr('trễ ') + Math.abs(pgi.diff) + '%' : '') }); lb.style.color = pgi.color;
+    }
     if (this.plugin.settings.stepsOnCard && t.check.length) {
       const steps = bottom.createEl('div', { cls: 'ev-steps' });
       t.check.forEach((x, i) => {
@@ -1203,6 +1248,23 @@ class PieLiveView extends obsidian.ItemView {
     const closeDD = () => { dd.classList.remove('open'); if (this._ddOutside) { document.removeEventListener('mousedown', this._ddOutside); this._ddOutside = null; } };
     SETTABLE.forEach(k => { const o = menu.createEl('button', { cls: 'dw-dd-opt' + (active === k ? ' on' : ''), attr: { type: 'button' } }); const ic = o.createEl('span', { cls: 'dw-dd-ic' }); ic.innerHTML = SI[k] || SI.dot; ic.style.color = STATES[k].c; o.createEl('span', { text: tr(STATES[k].lab) }); o.addEventListener('click', ev => { ev.stopPropagation(); closeDD(); this.plugin.setStatus(t, k); }); });
     trig.addEventListener('click', ev => { ev.stopPropagation(); const willOpen = !dd.classList.contains('open'); if (willOpen) { dd.classList.add('open'); this._ddOutside = e => { if (!dd.contains(e.target)) closeDD(); }; setTimeout(() => document.addEventListener('mousedown', this._ddOutside), 0); } else closeDD(); });
+    // tiến độ
+    const dpi = progressInfo(t, today()); const actNow = actualProgress(t);
+    if (actNow != null || t.startDate || t.date || t.check.length) {
+      const secPg = scroll.createEl('div', { cls: 'dw-sec' }); secPg.createEl('div', { cls: 'eyebrow', text: tr('Tiến độ') });
+      const track = secPg.createEl('div', { cls: 'ev-prog-track dw-prog-track' });
+      const fill = track.createEl('div', { cls: 'ev-prog-fill' }); fill.style.width = (actNow || 0) + '%'; fill.style.background = dpi ? dpi.color : '#5B93D6';
+      if (dpi && dpi.expected != null) { const mk = track.createEl('div', { cls: 'ev-prog-exp' }); mk.style.left = dpi.expected + '%'; }
+      const info = secPg.createEl('div', { cls: 'dw-prog-info' });
+      info.createEl('span', { text: tr('Thực tế ') + (actNow != null ? actNow + '%' : '—') });
+      if (dpi && dpi.expected != null) info.createEl('span', { text: ' · ' + tr('Dự kiến ') + dpi.expected + '%' });
+      if (dpi && dpi.diff != null && dpi.diff < 0) { const w = info.createEl('span', { text: ' · ' + tr('trễ ') + Math.abs(dpi.diff) + '%' }); w.style.color = dpi.color; w.style.fontWeight = '700'; }
+      const mrow = secPg.createEl('label', { cls: 'dw-prog-manual' });
+      mrow.createEl('span', { text: tr('% tự nhập') });
+      const pin = mrow.createEl('input', { cls: 'dt-in', attr: { type: 'number', min: '0', max: '100', placeholder: (t.check.length ? tr('theo đầu việc') : '') } });
+      if (t.pct != null) pin.value = String(t.pct);
+      pin.addEventListener('change', () => this.plugin.setPct(t, pin.value === '' ? null : pin.value));
+    }
     // priority
     const secP = scroll.createEl('div', { cls: 'dw-sec' }); secP.createEl('div', { cls: 'eyebrow', text: tr('Độ ưu tiên') });
     const pSel = secP.createEl('div', { cls: 'st-select' });
@@ -1267,6 +1329,7 @@ class PieLiveView extends obsidian.ItemView {
   fltMatch(t) {
     if (this.fltOwner !== 'all' && !ownersOf(t).includes(this.fltOwner)) return false;
     if (this.fltStatus !== 'all' && this.cardState(t) !== this.fltStatus) return false;
+    if (this.fltLate) { const pi = progressInfo(t, today()); if (!pi || (pi.kind !== 'warn' && pi.kind !== 'late')) return false; }
     if (this.fltPeriod === 'all') return true;
     if (this.fltPeriod === 'range') return (!this.fltFrom || (t.date && t.date >= this.fltFrom)) && (!this.fltTo || (t.date && t.date <= this.fltTo));
     if (!t.date) return false;
@@ -1286,6 +1349,8 @@ class PieLiveView extends obsidian.ItemView {
     ss.createEl('option', { text: tr('Mọi trạng thái'), value: 'all' });
     ['doing', 'review', 'error', 'over', 'completed', 'pending', 'notdone', 'fail', 'pause', 'cancel', 'expected', 'closed', 'open'].forEach(k => ss.createEl('option', { text: STATES[k].lab, value: k }));
     ss.value = this.fltStatus; ss.addEventListener('change', () => { this.fltStatus = ss.value; this.render(); });
+    const lateBtn = bar.createEl('button', { cls: 'pb-vflate' + (this.fltLate ? ' on' : ''), text: tr('Đang trễ') });
+    lateBtn.addEventListener('click', () => { this.fltLate = !this.fltLate; this.render(); });
     const ps = bar.createEl('select', { cls: 'pb-vfsel' });
     [['all', tr('Mọi lúc')], ['today', tr('Hôm nay')], ['week', tr('Tuần này')], ['month', tr('Tháng này')], ['range', tr('Khoảng tùy chọn')]].forEach(([v, l]) => ps.createEl('option', { text: l, value: v }));
     ps.value = this.fltPeriod; ps.addEventListener('change', () => { this.fltPeriod = ps.value; this.render(); });
@@ -1344,7 +1409,7 @@ class PieLiveView extends obsidian.ItemView {
     this.renderViewFilter(pane);
     const rows = this.filteredForView().slice().sort((a, b) => ((a.date || '9999') + (a.s || '')).localeCompare((b.date || '9999') + (b.s || '')));
     const head = pane.createEl('div', { cls: 'pb-lhead' });
-    ['', tr('Việc'), tr('Lane'), tr('Người'), tr('Hạn'), tr('Trạng thái')].forEach(h => head.createEl('span', { text: h }));
+    ['', tr('Việc'), tr('Lane'), tr('Người'), tr('Hạn'), tr('Tiến độ'), tr('Trạng thái')].forEach(h => head.createEl('span', { text: h }));
     const lst = pane.createEl('div', { cls: 'pb-lst' });
     rows.forEach(t => {
       const st = this.cardState(t), S = STATES[st];
@@ -1354,6 +1419,9 @@ class PieLiveView extends obsidian.ItemView {
       row.createEl('span', { cls: 'pb-lmeta', text: t.laneName });
       const as = row.createEl('span', { cls: 'pb-lassignee' }); const owners = ownersOf(t); if (owners.length) { avEl(as, owners[0]); as.createEl('span', { cls: 'anm', text: owners[0] + (owners.length > 1 ? ' +' + (owners.length - 1) : '') }); } else as.createEl('span', { cls: 'anm', text: '—' });
       row.createEl('span', { cls: 'pb-lmeta', text: (t.date ? fmtDate(t.date) : '—') + (t.s ? ' ' + t.s : '') });
+      const pgc = row.createEl('span', { cls: 'pb-lprog' }); const lpi = progressInfo(t, today());
+      if (lpi) { const tk = pgc.createEl('div', { cls: 'ev-prog-track' }); const fl = tk.createEl('div', { cls: 'ev-prog-fill' }); fl.style.width = lpi.actual + '%'; fl.style.background = lpi.color; if (lpi.expected != null) { const mk = tk.createEl('div', { cls: 'ev-prog-exp' }); mk.style.left = lpi.expected + '%'; } const lb = pgc.createEl('span', { cls: 'pb-lprog-lb', text: lpi.actual + '%' }); lb.style.color = lpi.color; }
+      else pgc.createEl('span', { cls: 'anm', text: '—' });
       const chip = row.createEl('span', { cls: 'pb-lchip', text: tr(S.lab) }); chip.style.color = S.c; chip.style.background = 'color-mix(in srgb,' + S.c + ' 15%,transparent)';
       row.addEventListener('click', () => this.openCard(t));
     });
@@ -1756,6 +1824,8 @@ function profLetter(name) { const m = (name || '').match(/[\p{L}\p{N}]/u); retur
 class PieTasksPlugin extends obsidian.Plugin {
   async onload() {
     this.settings = Object.assign({}, DEFAULTS, await this.loadData());
+    // Tự khôi phục nếu settings rỗng (mất board do cập nhật store ghi vào folder khác id — folder cũ 'pie-task' vs id 'pie-tasks')
+    if (!Array.isArray(this.settings.profiles) || !this.settings.profiles.length) await this._recoverLegacyData();
     LANG = this.settings.lang || 'vi';
     this.migrateProfiles();
     this.demoFile = 'planner';
@@ -1815,6 +1885,24 @@ class PieTasksPlugin extends obsidian.Plugin {
     s.activeId = legacy.id;
     delete s.taskPath; delete s.viewState; delete s.laneStyles; delete s.peoplePath;
     this.saveData(this.settings); // persist 1 lần (không await trong onload)
+  }
+  async _recoverLegacyData() {
+    try {
+      const cfg = this.app.vault.configDir;
+      const here = (this.manifest && this.manifest.dir) ? this.manifest.dir : (cfg + '/plugins/' + this.manifest.id);
+      const twins = [cfg + '/plugins/pie-tasks', cfg + '/plugins/pie-task'].filter(d => d !== here);
+      for (const d of twins) {
+        const p = d + '/data.json';
+        if (!(await this.app.vault.adapter.exists(p))) continue;
+        let raw; try { raw = JSON.parse(await this.app.vault.adapter.read(p)); } catch (e) { continue; }
+        if (raw && Array.isArray(raw.profiles) && raw.profiles.length) {
+          this.settings = Object.assign({}, DEFAULTS, raw);
+          await this.saveData(this.settings); // ghi vào folder hiện tại → lần sau không cần khôi phục
+          new obsidian.Notice('Pie Tasks: đã khôi phục ' + raw.profiles.length + ' bảng từ bản cài trước.');
+          return;
+        }
+      }
+    } catch (e) {}
   }
   prof() { const s = this.settings; return s.profiles.find(p => p.id === s.activeId) || s.profiles[0]; }
   peoplePathFor() { const p = this.prof(); return p.peoplePath || this.settings.defaultPeoplePath || DEFAULT_PEOPLE; }
@@ -2017,6 +2105,7 @@ class PieTasksPlugin extends obsidian.Plugin {
   setEisen(t, code) { return this.mutate(md => editLineMd(md, taskKey(t), l => setEisenRaw(l, code)), this.syncWarn(t)); }
   setTime(t, s, e) { return this.mutate(md => editLineMd(md, taskKey(t), l => setTimeRaw(l, s, e)), this.syncWarn(t)); }
   setPriority(t, level) { return this.mutate(md => editLineMd(md, taskKey(t), l => setPrioRaw(l, level)), this.syncWarn(t)); }
+  setPct(t, v) { return this.mutate(md => editLineMd(md, taskKey(t), l => setPctRaw(l, v)), this.syncWarn(t)); }
   toggleCheck(t, i) { return this.mutate(md => toggleCheckMd(md, taskKey(t), i)); }
   async loadPeople() {
     const path = obsidian.normalizePath(this.peoplePathFor());

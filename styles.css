@@ -262,6 +262,22 @@ body.theme-dark .pb-lane-pop { --pop-bg:#141A24; border-color:rgba(120,170,235,.
 .pie-board-root .dw-dd-opt:hover { background:var(--neutral-soft); }
 .pie-board-root .dw-dd-opt.on { background:color-mix(in srgb,var(--blue) 14%,transparent); color:var(--blue); }
 .pie-board-root .ev-note { font-size:11px; line-height:1.35; color:var(--text-muted); background:color-mix(in srgb,var(--c) 9%,transparent); border-left:2px solid color-mix(in srgb,var(--c) 42%,transparent); padding:5px 8px; border-radius:6px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+/* Thanh tiến độ (card + list + modal) */
+.pie-board-root .ev-prog { display:flex; align-items:center; gap:8px; }
+.pie-board-root .ev-prog-track { position:relative; flex:1 1 auto; height:6px; border-radius:999px; background:var(--neutral-soft); overflow:hidden; }
+.pie-board-root .ev-prog-fill { height:100%; border-radius:999px; }
+.pie-board-root .ev-prog-exp { position:absolute; top:0; bottom:0; width:2px; background:var(--text); opacity:.5; }
+.pie-board-root .ev-prog-lb { font-family:var(--pie-mono); font-size:10px; font-weight:700; white-space:nowrap; flex:0 0 auto; }
+.pie-board-root .pb-lprog { display:flex; align-items:center; gap:7px; min-width:0; }
+.pie-board-root .pb-lprog .ev-prog-track { flex:1 1 auto; }
+.pie-board-root .pb-lprog-lb { font-family:var(--pie-mono); font-size:11px; font-weight:700; flex:0 0 auto; }
+.pie-board-root .dw-prog-track { height:8px; margin-bottom:9px; }
+.pie-board-root .dw-prog-info { font-size:12px; color:var(--text-muted); margin-bottom:10px; }
+.pie-board-root .dw-prog-manual { display:flex; align-items:center; gap:10px; }
+.pie-board-root .dw-prog-manual > span { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--text-faint); }
+.pie-board-root .dw-prog-manual .dt-in { width:96px; }
+.pie-board-root .pb-vflate { background:var(--surface-2); color:var(--text-muted); border:1px solid var(--border); border-radius:9px; padding:7px 12px; font-size:12.5px; font-family:var(--pie-sans); cursor:pointer; }
+.pie-board-root .pb-vflate.on { background:color-mix(in srgb,#E5484D 15%,transparent); border-color:#E5484D; color:#E5484D; }
 .pie-board-root .ev-people { display:flex; align-items:center; gap:8px; padding-top:9px; border-top:1px solid color-mix(in srgb,var(--c) 16%,transparent); }
 .pie-board-root .avatars { display:flex; } .pie-board-root .avatars .av { margin-left:-7px; } .pie-board-root .avatars .av:first-child { margin-left:0; }
 .pie-board-root .av { width:24px; height:24px; border-radius:7px; display:grid; place-items:center; color:#fff; font-family:var(--pie-mono); font-size:9.5px; font-weight:700; flex:0 0 auto; box-shadow:0 0 0 2px color-mix(in srgb,var(--c,var(--surface)) 13%,var(--surface)); }
@@ -362,7 +378,7 @@ body.theme-dark .pb-lane-pop { --pop-bg:#141A24; border-color:rgba(120,170,235,.
 .pie-board-root .pb-empty { color:var(--text-muted); padding:24px 4px; }
 
 /* list */
-.pie-board-root .pb-lhead, .pie-board-root .pb-lrow { display:grid; grid-template-columns:10px minmax(0,1fr) 130px 150px 110px 120px; gap:14px; align-items:center; }
+.pie-board-root .pb-lhead, .pie-board-root .pb-lrow { display:grid; grid-template-columns:10px minmax(0,1fr) 120px 140px 100px 120px 120px; gap:14px; align-items:center; }
 .pie-board-root .pb-lhead { padding:0 12px 9px; font-family:var(--pie-mono); font-size:10px; font-weight:700; text-transform:uppercase; color:var(--text-faint); border-bottom:1px solid var(--border); }
 .pie-board-root .pb-lst { display:flex; flex-direction:column; gap:2px; margin-top:4px; }
 .pie-board-root .pb-lrow { padding:11px 12px; border-radius:12px; cursor:pointer; border:1px solid transparent; }
@@ -427,7 +443,7 @@ body.theme-dark .pb-lane-pop { --pop-bg:#141A24; border-color:rgba(120,170,235,.
 .is-mobile .pie-board-root .pb-col { flex-basis:250px; width:250px; }
 .is-mobile .pie-board-root .pb-drawer { width:100%; max-width:100%; }
 /* List: giữ bề rộng tối thiểu → cuộn ngang thay vì bóp méo cột */
-.is-mobile .pie-board-root .pb-lhead, .is-mobile .pie-board-root .pb-lrow { grid-template-columns:10px minmax(200px,1fr) 130px 150px 110px 120px; min-width:800px; }
+.is-mobile .pie-board-root .pb-lhead, .is-mobile .pie-board-root .pb-lrow { grid-template-columns:10px minmax(200px,1fr) 130px 150px 110px 130px 120px; min-width:920px; }
 /* THỜI GIAN drawer mobile: mỗi ô rộng AUTO theo nội dung (nhỏ gọn, KHÔNG kéo dãn nửa/1-3 hàng),
    flex căn trái + gap → không đè nhau. Wrap nếu 1 hàng không đủ chỗ. */
 .is-mobile .pie-board-root .dt-group { flex:1 1 100%; }
