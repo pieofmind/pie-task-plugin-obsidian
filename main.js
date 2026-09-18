@@ -1824,8 +1824,11 @@ function profLetter(name) { const m = (name || '').match(/[\p{L}\p{N}]/u); retur
 class PieTasksPlugin extends obsidian.Plugin {
   async onload() {
     this.settings = Object.assign({}, DEFAULTS, await this.loadData());
-    // Tự khôi phục nếu settings rỗng (mất board do cập nhật store ghi vào folder khác id — folder cũ 'pie-task' vs id 'pie-tasks')
-    if (!Array.isArray(this.settings.profiles) || !this.settings.profiles.length) await this._recoverLegacyData();
+    // Tự khôi phục nếu mất board do cập nhật store ghi vào folder khác id (folder cũ 'pie-task' vs id 'pie-tasks').
+    // Kích hoạt khi settings rỗng HOẶC chỉ còn đúng 1 bảng mặc định pristine (dấu hiệu vừa bị reset) mà folder anh em có nhiều bảng hơn.
+    const _s = this.settings, _pl = Array.isArray(_s.profiles) ? _s.profiles : [];
+    const _pristine = _pl.length === 1 && _pl[0].name === tr('Bảng chính') && _pl[0].taskPath === 'TASKS.md';
+    if (!_pl.length || _pristine) await this._recoverLegacyData();
     LANG = this.settings.lang || 'vi';
     this.migrateProfiles();
     this.demoFile = 'planner';
@@ -1838,6 +1841,7 @@ class PieTasksPlugin extends obsidian.Plugin {
     this.addCommand({ id: 'open-demo-planner', name: tr('Mở giao diện mẫu — Day Planner'), callback: () => this.openDemo('planner') });
     this.addCommand({ id: 'open-demo-studio', name: tr('Mở giao diện mẫu — Studio'), callback: () => this.openDemo('studio') });
     this.addCommand({ id: 'reload-tasks', name: tr('Tải lại TASKS.md'), callback: () => this.reload() });
+    this.addCommand({ id: 'recover-boards', name: tr('Khôi phục bảng từ bản cài trước'), callback: async () => { const ok = await this._recoverLegacyData(true); if (ok) { this.migrateProfiles(); this.reseedViews(); await this.reload(); } else new obsidian.Notice('Pie Tasks: không tìm thấy bảng cũ để khôi phục.'); } });
     this.addSettingTab(new PieSettingTab(this.app, this));
     this.registerEvent(this.app.vault.on('modify', f => { if (this.taskFile && f && f.path === this.taskFile.path) this.reload(); }));
     this.registerEvent(this.app.workspace.on('css-change', () => this.refreshLiveViews()));
@@ -1886,23 +1890,25 @@ class PieTasksPlugin extends obsidian.Plugin {
     delete s.taskPath; delete s.viewState; delete s.laneStyles; delete s.peoplePath;
     this.saveData(this.settings); // persist 1 lần (không await trong onload)
   }
-  async _recoverLegacyData() {
+  async _recoverLegacyData(force) {
     try {
       const cfg = this.app.vault.configDir;
       const here = (this.manifest && this.manifest.dir) ? this.manifest.dir : (cfg + '/plugins/' + this.manifest.id);
+      const curN = Array.isArray(this.settings.profiles) ? this.settings.profiles.length : 0;
       const twins = [cfg + '/plugins/pie-tasks', cfg + '/plugins/pie-task'].filter(d => d !== here);
       for (const d of twins) {
         const p = d + '/data.json';
         if (!(await this.app.vault.adapter.exists(p))) continue;
         let raw; try { raw = JSON.parse(await this.app.vault.adapter.read(p)); } catch (e) { continue; }
-        if (raw && Array.isArray(raw.profiles) && raw.profiles.length) {
+        if (raw && Array.isArray(raw.profiles) && raw.profiles.length && (force || raw.profiles.length > curN)) {
           this.settings = Object.assign({}, DEFAULTS, raw);
           await this.saveData(this.settings); // ghi vào folder hiện tại → lần sau không cần khôi phục
           new obsidian.Notice('Pie Tasks: đã khôi phục ' + raw.profiles.length + ' bảng từ bản cài trước.');
-          return;
+          return true;
         }
       }
     } catch (e) {}
+    return false;
   }
   prof() { const s = this.settings; return s.profiles.find(p => p.id === s.activeId) || s.profiles[0]; }
   peoplePathFor() { const p = this.prof(); return p.peoplePath || this.settings.defaultPeoplePath || DEFAULT_PEOPLE; }
