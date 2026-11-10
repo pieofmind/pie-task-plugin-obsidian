@@ -54,6 +54,7 @@ const I18N_EN = {
   'Sửa tên lane': 'Rename lane', 'Chèn lane trước': 'Insert lane before', 'Chèn lane sau': 'Insert lane after',
   'Sắp xếp theo tên': 'Sort by name', 'Sắp xếp theo hạn': 'Sort by due date', 'Xoá lane': 'Delete lane',
   // drawer
+  'Loại nhiệm vụ': 'Task Category', 'Gỡ': 'Remove',
   'Dự án': 'Project', 'Gắn vào dự án': 'Add to project', 'Gỡ khỏi dự án': 'Remove from project',
   'Thời gian': 'Time', 'Trạng thái': 'Status', 'Độ ưu tiên': 'Priority', 'Chuyển lane': 'Move lane',
   'Phụ trách': 'Assignee', 'Thêm người': 'Add person', 'Gỡ người này': 'Remove this person',
@@ -66,6 +67,7 @@ const I18N_EN = {
   'Huỷ việc': 'Cancel task', 'Xoá việc': 'Delete task',
   // list / stats / calendar
   'Danh sách công việc': 'Task list', 'Không có việc khớp bộ lọc.': 'No tasks match the filter.',
+  'Lọc': 'Filter', 'Thêm loại': 'Add category', 'Tìm hoặc tạo loại…': 'Search or create…', 'Tạo': 'Create', 'Chưa có loại nào — gõ để tạo': 'No categories yet — type to create', 'Chưa có loại nào.': 'No categories yet.', 'Xoá': 'Delete', 'Thêm': 'Add', 'Tên loại mới, vd: Học tập': 'New category, e.g. Learning', 'Xoá chỉ gỡ khỏi danh sách chọn — task đã gắn loại đó vẫn giữ nguyên trong file.': 'Deleting only removes it from the picker — tasks keep their value in the file.', 'Quản lý loại nhiệm vụ': 'Manage categories', 'Danh sách loại để chọn nhanh trên task (ghi vào file dạng [type:: …], Dataview đọc được). Dùng chung cho mọi bảng.': 'Categories to pick on tasks (written as [type:: …], readable by Dataview). Shared by all boards.', 'Lọc…': 'Filter…', 'Người phụ trách': 'Assignee', 'Không có lựa chọn': 'No options', 'Xoá lọc': 'Clear filters',
   'Tất cả người': 'Everyone', 'Mọi trạng thái': 'All statuses',
   'Mọi lúc': 'Any time', 'Tuần này': 'This week', 'Tháng này': 'This month', 'Khoảng tùy chọn': 'Custom range',
   'Việc': 'Task', 'Lane': 'Lane', 'Người': 'People', 'Hạn': 'Due',
@@ -168,6 +170,7 @@ const STATUS_RE = new RegExp('`(' + STATUS_LABELS.join('|') + ')`');
 const STATUS_RE_STRIP = new RegExp('\\s*`(' + STATUS_LABELS.join('|') + ')`', 'g');
 
 const PRI = { high: { lab: 'Cao', c: '#E5484D' }, med: { lab: 'Trung bình', c: '#E5A44D' }, normal: { lab: 'Bình thường', c: '#7D848F' }, low: { lab: 'Thấp', c: '#59606B' } };
+const FILTER_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M10 18h4"/></svg>';
 const PRIO_ORDER = { high: 3, med: 2, normal: 1, low: 0 };
 const EISEN = {
   q1: { lab: 'Quan trọng · Khẩn cấp', short: 'QT-KC', c: '#C0392B' },
@@ -360,15 +363,17 @@ function parseTasks(md, path) {
     const outputs = outm ? (outm[1].match(/\[\[[^\]]+\]\]/g) || []) : [];
     const projm = rest.match(/\[project::\s*(\[\[[^\]]+\]\])\s*\]/) || rest.match(/`project:\s*(\[\[[^\]]+\]\])`/);
     const project = projm ? projm[1] : null;
+    const typem = rest.match(TYPE_RE);
+    const types = typem ? typem[1].split(/[,;]/).map(x => x.trim()).filter(Boolean) : [];
     let title = rest
-      .replace(/\[project::\s*\[\[[^\]]+\]\]\s*\]/g, '')
+      .replace(/\[project::\s*\[\[[^\]]+\]\]\s*\]/g, '').replace(TYPE_RE_G, '')
       .replace(/`[^`]*`/g, '').replace(/✅\s*\d{4}-\d{2}-\d{2}/g, '').replace(/📅\s*\d{4}-\d{2}-\d{2}/g, '').replace(/🛫\s*\d{4}-\d{2}-\d{2}/g, '')
       .replace(/⚠️\s*QUÁ HẠN/gi, '').replace(/[🔴🟡🟢🔽🤖👤🛫⚠️📌📅🔗📊🔥⏰]/g, '').replace(/\*\*/g, '')
       .replace(/\s{2,}/g, ' ').trim();
     if (!title) title = '(không tiêu đề)';
     cur = {
       lane, laneName: laneName(lane), title, done, owner, owners, date, startDate, s, e, status, over, pri, prio,
-      id: idm ? idm[1] : null, pct: pctm ? +pctm[1] : null, next: nextm ? nextm[1].trim() : null, note: notem ? notem[1].trim() : null, eisen: eim ? eim[1] : null, outputs, project,
+      id: idm ? idm[1] : null, pct: pctm ? +pctm[1] : null, next: nextm ? nextm[1].trim() : null, note: notem ? notem[1].trim() : null, eisen: eim ? eim[1] : null, outputs, project, types,
       check: [], raw, line: i, blockStart: i, blockEnd: i, laneIcon: laneIcon(lane), synced: isSyncedLane(lane)
     };
     tasks.push(cur);
@@ -554,6 +559,15 @@ function setProjectRaw(raw, link) {
   const stripped = raw.replace(/\s*\[project::\s*\[\[[^\]]+\]\]\s*\]/, '').replace(/\s*`project:[^`]*`/, '');
   if (!link) return stripped;
   return stripped.replace(/\s+$/, '') + ' [project:: [[' + link + ']]]';
+}
+// Loại nhiệm vụ (multi): [type:: a, b] — đọc cả alias [category:: ...], ghi luôn là type
+const TYPE_RE = /\[(?:type|category)::\s*([^\]\n]*)\]/;
+const TYPE_RE_G = /\s*\[(?:type|category)::\s*[^\]\n]*\]/g;
+function setTypesRaw(raw, list) {
+  const stripped = raw.replace(TYPE_RE_G, '');
+  const vals = [...new Set((list || []).map(x => String(x).replace(/[\]\[,;`]/g, '').trim()).filter(Boolean))];
+  if (!vals.length) return stripped;
+  return stripped.replace(/\s+$/, '') + ' [type:: ' + vals.join(', ') + ']';
 }
 function setStatusRaw(raw, key) {
   const label = STATES[key] ? STATES[key].lab : null;
@@ -822,6 +836,7 @@ class PieLiveView extends obsidian.ItemView {
     this.filter = 'all';
     this.anchor = today();
     this.rangeStart = today(); this.rangeEnd = today();
+    this.bf = { type: new Set(), owner: new Set(), prio: new Set() }; this.fpop = null; // fpop: { facet, q } khi popover Lọc đang mở
     this.fltOwner = 'all'; this.fltPeriod = 'all'; this.fltStatus = 'all'; this.fltFrom = ''; this.fltTo = ''; this.fltLate = false;
     this.calAnchor = today().slice(0, 7) + '-01';
     this.selId = null;
@@ -847,11 +862,20 @@ class PieLiveView extends obsidian.ItemView {
   matchDate(t) { if (this.viewMode === 'all') return true; if (!t.date) return true; const r = activeRange(this.viewMode, this.anchor, this.rangeStart, this.rangeEnd); return !r || (t.date >= r[0] && t.date <= r[1]); }
   cardState(t) { return t.done ? 'completed' : (t.status === 'error' ? 'error' : (t.over ? 'over' : (t.status === 'open' ? 'open' : t.status))); }
   activeStatus(t) { return t.done ? 'completed' : (t.status && t.status !== 'open' ? t.status : null); }
-  visible(t) { return this.matchState(t) && this.matchDate(t); }
+  matchBoardFlt(t) {
+    const f = this.bf;
+    if (f.type.size && !t.types.some(x => f.type.has(x))) return false;
+    if (f.owner.size && !ownersOf(t).some(x => f.owner.has(x))) return false;
+    if (f.prio.size && !f.prio.has(t.prio || 'normal')) return false;
+    return true;
+  }
+  visible(t) { return this.matchState(t) && this.matchDate(t) && this.matchBoardFlt(t); }
   allTasks() { return (this.plugin.taskData && this.plugin.taskData.tasks) || []; }
 
   render() {
     const c = this.containerEl.children[1];
+    if (this._fpopOff) this._fpopOff();
+    if (this._tpOff) this._tpOff();
     c.empty();
     c.removeClass('pie-live-root');
     c.addClass('pie-board-root');
@@ -921,7 +945,7 @@ class PieLiveView extends obsidian.ItemView {
     const tasks = this.allTasks();
     const head = main.createEl('div', { cls: 'pb-head' });
     const hl = head.createEl('div', { cls: 'pb-head-l' });
-    hl.createEl('div', { cls: 'pb-title', text: 'Pie Tasks' });
+    hl.createEl('div', { cls: 'pb-title', text: 'Pie Tasks - ' + this.plugin.prof().name });
     const overdue = tasks.filter(t => t.over).length, doneN = tasks.filter(t => t.done).length;
     hl.createEl('div', { cls: 'pb-sub', text: tasks.length + tr(' việc · ') + overdue + tr(' quá hạn · ') + doneN + tr(' hoàn thành') });
     if (this.view === 'board') {
@@ -1030,6 +1054,80 @@ class PieLiveView extends obsidian.ItemView {
     });
     const al = bar.createEl('button', { cls: 'pb-add-lane' }); al.innerHTML = I.plus + tr('Thêm lane');
     al.addEventListener('click', () => this.plugin.addLane());
+    // bộ lọc kanban: nút Lọc → popover (nhóm bên phải, danh sách tick bên trái)
+    const nAct = this.bf.type.size + this.bf.owner.size + this.bf.prio.size;
+    const fg = bar.createEl('div', { cls: 'pb-fgroup' });
+    if (nAct) {
+      const clr = fg.createEl('button', { cls: 'pb-fclear', text: tr('Xoá lọc') });
+      clr.addEventListener('click', () => { Object.values(this.bf).forEach(x => x.clear()); this.fpop = null; this.render(); });
+    }
+    const fb = fg.createEl('button', { cls: 'pb-sf pb-fbtn' + (nAct || this.fpop ? ' act' : '') });
+    fb.innerHTML = FILTER_SVG; fb.appendText(tr('Lọc'));
+    if (nAct) fb.createEl('span', { cls: 'pb-fcount', text: String(nAct) });
+    fb.addEventListener('click', ev => { ev.stopPropagation(); this.fpop = this.fpop ? null : { facet: null, q: '' }; this.render(); });
+    if (this.fpop) this.renderFilterPop(fb, tasks);
+  }
+  filterFacets(tasks) {
+    const cnt = fn => v => tasks.filter(t => fn(t, v)).length;
+    const types = [...new Set([...this.plugin.typeList(), ...tasks.flatMap(t => t.types)])].sort((a, b) => a.localeCompare(b, 'vi'));
+    return [
+      { key: 'type', ic: I.list, lab: tr('Loại nhiệm vụ'), opts: types.map(x => [x, x]), n: cnt((t, v) => t.types.includes(v)) },
+      { key: 'owner', ic: I.person, lab: tr('Người phụ trách'), opts: this.allOwners().map(o => [o, o]), n: cnt((t, v) => ownersOf(t).includes(v)) },
+      { key: 'prio', ic: I.flag, lab: tr('Ưu tiên'), opts: ['high', 'med', 'normal', 'low'].map(k => [k, tr(PRI[k].lab)]), n: cnt((t, v) => (t.prio || 'normal') === v) },
+    ];
+  }
+  renderFilterPop(anchor, tasks) {
+    const facets = this.filterFacets(tasks);
+    const st = this.fpop;
+    const pop = this.root.createEl('div', { cls: 'pb-fpop' });
+    // toạ độ tương đối root (root là khối định vị; position:fixed bị lệch vì tổ tiên có transform)
+    const r = anchor.getBoundingClientRect(), rr = this.root.getBoundingClientRect();
+    pop.style.top = (r.bottom - rr.top + 6) + 'px';
+    pop.style.right = Math.max(8, rr.right - r.right) + 'px';
+    const menu = pop.createEl('div', { cls: 'pb-fmenu' });
+    const sub = pop.createEl('div', { cls: 'pb-fsub' });
+    const drawSub = () => {
+      sub.empty();
+      const f = facets.find(x => x.key === st.facet);
+      sub.toggleClass('is-hidden', !f);
+      if (!f) return;
+      const q = sub.createEl('input', { cls: 'pb-fq', attr: { type: 'text', placeholder: tr('Lọc…') } });
+      q.value = st.q || '';
+      const list = sub.createEl('div', { cls: 'pb-flist' });
+      const drawList = () => {
+        list.empty();
+        const s = (st.q || '').toLowerCase();
+        const opts = f.opts.filter(o => !s || o[1].toLowerCase().includes(s));
+        if (!opts.length) { list.createEl('div', { cls: 'pb-fempty', text: tr('Không có lựa chọn') }); return; }
+        opts.forEach(([v, l]) => {
+          const row = list.createEl('label', { cls: 'pb-fopt' });
+          const cb = row.createEl('input', { attr: { type: 'checkbox' } });
+          cb.checked = this.bf[f.key].has(v);
+          row.createEl('span', { cls: 'pb-fopt-lb', text: l });
+          const n = f.n(v); if (n) row.createEl('span', { cls: 'pb-fopt-n', text: String(n) });
+          cb.addEventListener('change', () => { const set = this.bf[f.key]; cb.checked ? set.add(v) : set.delete(v); this.render(); });
+        });
+      };
+      q.addEventListener('input', () => { st.q = q.value; drawList(); });
+      drawList();
+      setTimeout(() => q.focus(), 0);
+    };
+    facets.forEach(f => {
+      const it = menu.createEl('div', { cls: 'pb-fitem' + (f.key === st.facet ? ' on' : ''), attr: { role: 'button' } });
+      it.createEl('span', { cls: 'pb-fitem-ic' }).innerHTML = f.ic;
+      it.createEl('span', { cls: 'pb-fitem-lb', text: f.lab });
+      if (this.bf[f.key].size) it.createEl('span', { cls: 'pb-fcount', text: String(this.bf[f.key].size) });
+      it.createEl('span', { cls: 'pb-fitem-ch' }).innerHTML = I.chevR;
+      const pick = () => { if (st.facet === f.key) return; st.facet = f.key; st.q = ''; menu.querySelectorAll('.pb-fitem').forEach(e => e.removeClass('on')); it.addClass('on'); drawSub(); };
+      it.addEventListener('click', pick);
+    });
+    drawSub();
+    const close = () => { this.fpop = null; this.render(); };
+    const outside = e => { if (!pop.contains(e.target) && !anchor.contains(e.target)) close(); };
+    const esc = e => { if (e.key === 'Escape') close(); };
+    if (this._fpopOff) this._fpopOff();
+    setTimeout(() => { document.addEventListener('mousedown', outside); document.addEventListener('keydown', esc); }, 0);
+    this._fpopOff = () => { document.removeEventListener('mousedown', outside); document.removeEventListener('keydown', esc); this._fpopOff = null; };
   }
 
   renderCard(colEl, t) {
@@ -1069,7 +1167,8 @@ class PieLiveView extends obsidian.ItemView {
         st.addEventListener('click', ev => { ev.stopPropagation(); this.plugin.toggleCheck(t, i); });
       });
     }
-    if (t.note) { const nt = bottom.createEl('div', { cls: 'ev-note' }); nt.appendText(t.note); }
+    if (t.note) { const nt = bottom.createEl('div', { cls: 'ev-note' }); nt.createEl('span', { cls: 'ev-note-ic' }).innerHTML = I.edit; nt.createEl('div', { cls: 'ev-note-tx', text: t.note }); }
+    if (t.types.length) { const cs = bottom.createEl('div', { cls: 'ev-cats' }); t.types.forEach(x => cs.createEl('span', { cls: 'ev-cat', text: x })); }
     const people = bottom.createEl('div', { cls: 'ev-people' });
     const owners = ownersOf(t);
     if (owners.length) { const av = people.createEl('span', { cls: 'avatars' }); owners.slice(0, 3).forEach(o => avEl(av, o)); people.createEl('span', { cls: 'ev-going', text: owners.length > 1 ? owners.length + tr(' người') : owners[0] }); }
@@ -1168,6 +1267,8 @@ class PieLiveView extends obsidian.ItemView {
     add.addEventListener('click', () => { this.closeProfileMenu(); this.plugin.addProfile(); });
     const mng = foot.createEl('button', { cls: 'pb-prof-act' }); mng.createEl('span', { cls: 'pb-prof-ai' }).innerHTML = I.gear; mng.appendText(tr('Quản lý bảng'));
     mng.addEventListener('click', () => { this.closeProfileMenu(); this.openProfileManager(); });
+    const tym = foot.createEl('button', { cls: 'pb-prof-act' }); tym.createEl('span', { cls: 'pb-prof-ai' }).innerHTML = I.list; tym.appendText(tr('Quản lý loại nhiệm vụ'));
+    tym.addEventListener('click', () => { this.closeProfileMenu(); new TypeManagerModal(this.app, this.plugin).open(); });
     document.body.appendChild(pop);
     const r = btn.getBoundingClientRect();
     let top = r.top, left = Math.min(r.right + 10, window.innerWidth - pop.offsetWidth - 8);
@@ -1220,11 +1321,25 @@ class PieLiveView extends obsidian.ItemView {
       const addP = secPr.createEl('div', { cls: 'add-more' }); addP.innerHTML = I.folder; addP.appendText(tr('Gắn vào dự án'));
       addP.addEventListener('click', () => this.plugin.pickProject(t));
     }
+    // loại nhiệm vụ (multi-select, ghi [type:: a, b])
+    const secTy = scroll.createEl('div', { cls: 'dw-sec' });
+    secTy.createEl('div', { cls: 'eyebrow', text: tr('Loại nhiệm vụ') });
+    const catRow = secTy.createEl('div', { cls: 'dw-cats' });
+    t.types.forEach(x => {
+      const ch = catRow.createEl('span', { cls: 'ev-cat dw-cat', text: x });
+      const rx = ch.createEl('button', { cls: 'pb-x', attr: { title: tr('Gỡ') } }); rx.innerHTML = I.x;
+      rx.addEventListener('click', ev => { ev.stopPropagation(); this.plugin.setTypes(t, t.types.filter(y => y !== x)); });
+    });
+    const addTy = secTy.createEl('div', { cls: 'add-more' }); addTy.innerHTML = I.plus; addTy.appendText(tr('Thêm loại'));
+    addTy.addEventListener('click', ev => { ev.stopPropagation(); this.typePick = this.typePick ? null : { q: '', key: taskKey(t) }; this.render(); });
+    if (this.typePick && this.typePick.key === taskKey(t)) this.renderTypePicker(secTy, t);
     // ghi chú (nhắc thông tin quan trọng)
     const secN = scroll.createEl('div', { cls: 'dw-sec' }); secN.createEl('div', { cls: 'eyebrow', text: tr('Ghi chú') });
-    const ntIn = secN.createEl('input', { cls: 'dt-in dw-note-in', attr: { type: 'text', placeholder: tr('Ghi chú nhắc nhở…') } });
+    const ntIn = secN.createEl('textarea', { cls: 'dt-in dw-note-in', attr: { rows: '3', placeholder: tr('Ghi chú nhắc nhở…') } });
     if (t.note) ntIn.value = t.note;
-    ntIn.addEventListener('change', () => this.plugin.setNote(t, ntIn.value.trim()));
+    const fit = () => { ntIn.style.height = 'auto'; ntIn.style.height = ntIn.scrollHeight + 2 + 'px'; };
+    ntIn.addEventListener('input', fit); setTimeout(fit, 0);
+    ntIn.addEventListener('change', () => this.plugin.setNote(t, ntIn.value.replace(/\s*\n\s*/g, ' ').trim()));
     // time editors
     const secT = scroll.createEl('div', { cls: 'dw-sec' }); secT.createEl('div', { cls: 'eyebrow', text: tr('Thời gian') });
     const grid = secT.createEl('div', { cls: 'dt-grid' });
@@ -1322,7 +1437,47 @@ class PieLiveView extends obsidian.ItemView {
     mk('danger', I.trash, tr('Xoá việc'), () => this.plugin.deleteTask(t));
     this.root.addClass('dw-open');
   }
-  closeDrawer() { this.selId = null; if (this.root) this.root.removeClass('dw-open'); if (this.drawerEl) this.drawerEl.empty(); this.render(); }
+  renderTypePicker(host, t) {
+    const st = this.typePick;
+    const pop = host.createEl('div', { cls: 'pb-fsub dw-typepick' });
+    const q = pop.createEl('input', { cls: 'pb-fq', attr: { type: 'text', placeholder: tr('Tìm hoặc tạo loại…') } });
+    q.value = st.q || '';
+    const list = pop.createEl('div', { cls: 'pb-flist' });
+    const all = [...new Set([...this.plugin.typeList(), ...this.allTasks().flatMap(x => x.types)])].sort((a, b) => a.localeCompare(b, 'vi'));
+    const toggle = v => this.plugin.setTypes(t, t.types.includes(v) ? t.types.filter(y => y !== v) : [...t.types, v]);
+    const create = async v => { await this.plugin.addTypeToList(v); if (!t.types.includes(v)) toggle(v); st.q = ''; };
+    const draw = () => {
+      list.empty();
+      const sq = (st.q || '').trim(), lq = sq.toLowerCase();
+      const opts = all.filter(v => !lq || v.toLowerCase().includes(lq));
+      opts.forEach(v => {
+        const row = list.createEl('label', { cls: 'pb-fopt' });
+        const cb = row.createEl('input', { attr: { type: 'checkbox' } }); cb.checked = t.types.includes(v);
+        row.createEl('span', { cls: 'pb-fopt-lb', text: v });
+        cb.addEventListener('change', () => toggle(v));
+      });
+      if (sq && !all.some(v => v.toLowerCase() === lq)) {
+        const cr = list.createEl('div', { cls: 'pb-fopt pb-fcreate', attr: { role: 'button' } });
+        cr.innerHTML = I.plus; cr.appendText(tr('Tạo') + ' "' + sq + '"');
+        cr.addEventListener('click', () => create(sq));
+      } else if (!opts.length) list.createEl('div', { cls: 'pb-fempty', text: tr('Chưa có loại nào — gõ để tạo') });
+    };
+    q.addEventListener('input', () => { st.q = q.value; draw(); });
+    q.addEventListener('keydown', ev => {
+      if (ev.key === 'Escape') { this.typePick = null; this.render(); return; }
+      if (ev.key !== 'Enter') return;
+      ev.preventDefault();
+      const sq = q.value.trim(); if (!sq) return;
+      const hit = all.find(v => v.toLowerCase() === sq.toLowerCase());
+      if (hit) { st.q = ''; toggle(hit); } else create(sq);
+    });
+    draw();
+    setTimeout(() => q.focus(), 0);
+    const outside = e => { if (!pop.contains(e.target) && !host.querySelector('.add-more').contains(e.target)) { this.typePick = null; this.render(); } };
+    setTimeout(() => document.addEventListener('mousedown', outside), 0);
+    this._tpOff = () => { document.removeEventListener('mousedown', outside); this._tpOff = null; };
+  }
+  closeDrawer() { this.typePick = null; this.selId = null; if (this.root) this.root.removeClass('dw-open'); if (this.drawerEl) this.drawerEl.empty(); this.render(); }
 
   // ---------- LIST ----------
   filteredForView() { const tasks = this.allTasks(); return tasks.filter(t => this.fltMatch(t)); }
@@ -1759,6 +1914,31 @@ class ProfileModal extends obsidian.Modal {
 function askProfile(app, opts) { return new Promise(res => new ProfileModal(app, opts, res).open()); }
 
 // ---------- modal quản lý danh sách bảng (sửa/xoá/đổi thứ tự) ----------
+// ---------- quản lý danh sách loại nhiệm vụ (dùng ở Settings + modal từ menu bảng) ----------
+function renderTypeManager(el, plugin) {
+  el.empty();
+  const list = el.createDiv({ cls: 'pt-types' });
+  const items = plugin.typeList();
+  if (!items.length) list.createDiv({ cls: 'pt-types-empty', text: tr('Chưa có loại nào.') });
+  items.forEach(v => {
+    const row = list.createDiv({ cls: 'pt-types-row' });
+    row.createSpan({ cls: 'pt-types-nm', text: v });
+    const del = row.createEl('button', { cls: 'pt-types-del', attr: { 'aria-label': tr('Xoá') } }); del.innerHTML = I.trash;
+    del.addEventListener('click', async () => { await plugin.removeTypeFromList(v); renderTypeManager(el, plugin); });
+  });
+  const add = el.createDiv({ cls: 'pt-types-add' });
+  const inp = add.createEl('input', { attr: { type: 'text', placeholder: tr('Tên loại mới, vd: Học tập') } });
+  const btn = add.createEl('button', { cls: 'mod-cta', text: tr('Thêm') });
+  const go = async () => { const v = inp.value.replace(/[\]\[,;`]/g, '').trim(); if (!v) return; await plugin.addTypeToList(v); plugin.refreshLiveViews(); renderTypeManager(el, plugin); el.querySelector('.pt-types-add input').focus(); };
+  btn.addEventListener('click', go);
+  inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); go(); } });
+  el.createDiv({ cls: 'pt-types-note', text: tr('Xoá chỉ gỡ khỏi danh sách chọn — task đã gắn loại đó vẫn giữ nguyên trong file.') });
+}
+class TypeManagerModal extends obsidian.Modal {
+  constructor(app, plugin) { super(app); this.plugin = plugin; }
+  onOpen() { this.titleEl.setText(tr('Loại nhiệm vụ')); this.modalEl.addClass('pt-types-modal'); renderTypeManager(this.contentEl, this.plugin); }
+  onClose() { this.contentEl.empty(); }
+}
 class ProfileManagerModal extends obsidian.Modal {
   constructor(app, plugin) { super(app); this.plugin = plugin; }
   onOpen() { this.titleEl.setText(tr('Quản lý bảng')); this.render(); }
@@ -2107,6 +2287,17 @@ class PieTasksPlugin extends obsidian.Plugin {
   setTitle(t, v) { return this.mutate(md => editLineMd(md, taskKey(t), l => setTitleRaw(l, v)), this.syncWarn(t)); }
   setDate(t, v) { return this.mutate(md => editLineMd(md, taskKey(t), l => setDateRaw(l, v)), this.syncWarn(t)); }
   setStartDate(t, v) { return this.mutate(md => editLineMd(md, taskKey(t), l => setStartDateRaw(l, v)), this.syncWarn(t)); }
+  typeList() {
+    if (!Array.isArray(this.settings.types)) {
+      const seen = new Set(((this.taskData && this.taskData.tasks) || []).flatMap(t => t.types));
+      this.settings.types = [...seen].sort((a, b) => a.localeCompare(b, 'vi'));
+      this.saveSettings();
+    }
+    return this.settings.types;
+  }
+  async addTypeToList(v) { const l = this.typeList(); if (!l.includes(v)) { this.settings.types = [...l, v].sort((a, b) => a.localeCompare(b, 'vi')); await this.saveSettings(); } }
+  async removeTypeFromList(v) { this.settings.types = this.typeList().filter(x => x !== v); await this.saveSettings(); this.refreshLiveViews(); }
+  setTypes(t, list) { return this.mutate(md => editLineMd(md, taskKey(t), l => setTypesRaw(l, list))); }
   setNote(t, v) { return this.mutate(md => editLineMd(md, taskKey(t), l => setNoteRaw(l, v)), this.syncWarn(t)); }
   setEisen(t, code) { return this.mutate(md => editLineMd(md, taskKey(t), l => setEisenRaw(l, code)), this.syncWarn(t)); }
   setTime(t, s, e) { return this.mutate(md => editLineMd(md, taskKey(t), l => setTimeRaw(l, s, e)), this.syncWarn(t)); }
@@ -2255,6 +2446,9 @@ class PieSettingTab extends obsidian.PluginSettingTab {
       .setName(tr('Hiện danh sách bước làm trên thẻ'))
       .setDesc(tr('Bật: thẻ việc hiện đầy đủ các bước (tick được ngay trên thẻ). Tắt: chỉ hiện số đếm dạng 0/3.'))
       .addToggle(t => t.setValue(!!this.plugin.settings.stepsOnCard).onChange(async v => { this.plugin.settings.stepsOnCard = v; await this.plugin.saveSettings(); this.plugin.refreshLiveViews(); }));
+    new obsidian.Setting(containerEl).setName(tr('Loại nhiệm vụ'))
+      .setDesc(tr('Danh sách loại để chọn nhanh trên task (ghi vào file dạng [type:: …], Dataview đọc được). Dùng chung cho mọi bảng.')).setHeading();
+    renderTypeManager(containerEl.createDiv({ cls: 'pt-types-wrap' }), this.plugin);
   }
   renderHeader(containerEl) {
     const header = containerEl.createDiv({ cls: 'pt-settings-header' });
