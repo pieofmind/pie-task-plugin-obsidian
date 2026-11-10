@@ -2,6 +2,22 @@
 
 Định dạng theo [Keep a Changelog](https://keepachangelog.com/) + [SemVer](https://semver.org/).
 
+## [2.4.0]
+
+### Added
+- **Loại nhiệm vụ (type)** — đa chọn, ghi vào dòng task dạng Dataview inline-field `[type:: Công việc, Học tập]` (đọc cả alias `[category:: …]`). Không còn phải gõ tay vào tên task; token cũ đã gõ trong tên được nhận và ẩn khỏi tiêu đề thẻ. Chọn/tạo nhanh trong panel task (tìm kiếm + tick + "Tạo …"); danh sách dùng chung mọi bảng, quản lý ở Settings → Pie Tasks và menu bảng → "Quản lý loại nhiệm vụ".
+- **Bộ lọc kanban**: nút **Lọc** cuối hàng chip trạng thái → popover chọn nhóm (Loại nhiệm vụ / Người phụ trách / Ưu tiên), tick nhiều giá trị, tìm kiếm, đếm số task; huy hiệu số bộ lọc đang bật + "Xoá lọc".
+- Tiêu đề board hiện **tên bảng đang mở**: "Pie Tasks - <tên bảng>".
+
+### Changed
+- Ghi chú trên thẻ: hiện tới **5 dòng** (trước 2), bỏ vạch trái → viền nét đứt pha màu thẻ + icon bút; URL dài tự xuống dòng.
+- Ô ghi chú trong panel task: nhiều dòng, tự giãn theo nội dung.
+- Chip `✓ n/m` và rãnh thanh tiến độ pha theo màu thẻ — dễ nhìn trên light theme.
+
+### Fixed
+- Dòng cuối ghi chú bị cắt nửa chữ (padding lọt vùng line-clamp).
+- Bóng panel chi tiết (đã đóng) đè mờ mép phải board.
+
 ## [2.1.0]
 
 ### Added
