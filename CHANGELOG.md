@@ -2,6 +2,12 @@
 
 Định dạng theo [Keep a Changelog](https://keepachangelog.com/) + [SemVer](https://semver.org/).
 
+## [2.4.1]
+
+### Added
+- **Đổi tên loại nhiệm vụ** (nút sửa cạnh nút xoá, ở Settings và menu bảng → "Quản lý loại nhiệm vụ"). Đổi tên cập nhật luôn `[type:: …]` trên mọi task ở tất cả các bảng; tên mới trùng loại có sẵn thì gộp làm một.
+- Bộ lọc kanban có nhóm **Trạng thái** (đủ 13, gồm Quá hạn, Chưa xử lý) và **Ma trận Eisenhower** (kèm "Chưa xếp") — cho ai đã cài bản 2.4.0 đầu tiên.
+
 ## [2.4.0]
 
 ### Added

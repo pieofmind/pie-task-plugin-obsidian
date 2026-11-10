@@ -67,7 +67,7 @@ const I18N_EN = {
   'Huỷ việc': 'Cancel task', 'Xoá việc': 'Delete task',
   // list / stats / calendar
   'Danh sách công việc': 'Task list', 'Không có việc khớp bộ lọc.': 'No tasks match the filter.',
-  'Lọc': 'Filter', 'Thêm loại': 'Add category', 'Tìm hoặc tạo loại…': 'Search or create…', 'Tạo': 'Create', 'Chưa có loại nào — gõ để tạo': 'No categories yet — type to create', 'Chưa có loại nào.': 'No categories yet.', 'Xoá': 'Delete', 'Thêm': 'Add', 'Tên loại mới, vd: Học tập': 'New category, e.g. Learning', 'Xoá chỉ gỡ khỏi danh sách chọn — task đã gắn loại đó vẫn giữ nguyên trong file.': 'Deleting only removes it from the picker — tasks keep their value in the file.', 'Quản lý loại nhiệm vụ': 'Manage categories', 'Danh sách loại để chọn nhanh trên task (ghi vào file dạng [type:: …], Dataview đọc được). Dùng chung cho mọi bảng.': 'Categories to pick on tasks (written as [type:: …], readable by Dataview). Shared by all boards.', 'Lọc…': 'Filter…', 'Người phụ trách': 'Assignee', 'Ma trận Eisenhower': 'Eisenhower matrix', 'Chưa xếp': 'Unsorted', 'Không có lựa chọn': 'No options', 'Xoá lọc': 'Clear filters',
+  'Lọc': 'Filter', 'Thêm loại': 'Add category', 'Tìm hoặc tạo loại…': 'Search or create…', 'Tạo': 'Create', 'Chưa có loại nào — gõ để tạo': 'No categories yet — type to create', 'Chưa có loại nào.': 'No categories yet.', 'Xoá': 'Delete', 'Thêm': 'Add', 'Tên loại mới, vd: Học tập': 'New category, e.g. Learning', 'Xoá chỉ gỡ khỏi danh sách chọn — task đã gắn loại đó vẫn giữ nguyên trong file.': 'Deleting only removes it from the picker — tasks keep their value in the file.', 'Quản lý loại nhiệm vụ': 'Manage categories', 'Sửa': 'Edit', 'Đã đổi tên loại': 'Renamed category', ' task được cập nhật': ' task(s) updated', 'Danh sách loại để chọn nhanh trên task (ghi vào file dạng [type:: …], Dataview đọc được). Dùng chung cho mọi bảng.': 'Categories to pick on tasks (written as [type:: …], readable by Dataview). Shared by all boards.', 'Lọc…': 'Filter…', 'Người phụ trách': 'Assignee', 'Ma trận Eisenhower': 'Eisenhower matrix', 'Chưa xếp': 'Unsorted', 'Không có lựa chọn': 'No options', 'Xoá lọc': 'Clear filters',
   'Tất cả người': 'Everyone', 'Mọi trạng thái': 'All statuses',
   'Mọi lúc': 'Any time', 'Tuần này': 'This week', 'Tháng này': 'This month', 'Khoảng tùy chọn': 'Custom range',
   'Việc': 'Task', 'Lane': 'Lane', 'Người': 'People', 'Hạn': 'Due',
@@ -569,6 +569,19 @@ function setTypesRaw(raw, list) {
   const vals = [...new Set((list || []).map(x => String(x).replace(/[\]\[,;`]/g, '').trim()).filter(Boolean))];
   if (!vals.length) return stripped;
   return stripped.replace(/\s+$/, '') + ' [type:: ' + vals.join(', ') + ']';
+}
+// đổi tên 1 loại trên mọi dòng task trong md; trả về { md, n } (n = số dòng đã sửa)
+function renameTypeInMd(md, from, to) {
+  let n = 0;
+  const out = md.split('\n').map(l => {
+    const m = l.match(TYPE_RE);
+    if (!m) return l;
+    const vals = m[1].split(/[,;]/).map(x => x.trim()).filter(Boolean);
+    if (!vals.includes(from)) return l;
+    n++;
+    return setTypesRaw(l, vals.map(v => (v === from ? to : v)));
+  }).join('\n');
+  return { md: out, n };
 }
 function setStatusRaw(raw, key) {
   const label = STATES[key] ? STATES[key].lab : null;
@@ -1930,7 +1943,17 @@ function renderTypeManager(el, plugin) {
   if (!items.length) list.createDiv({ cls: 'pt-types-empty', text: tr('Chưa có loại nào.') });
   items.forEach(v => {
     const row = list.createDiv({ cls: 'pt-types-row' });
-    row.createSpan({ cls: 'pt-types-nm', text: v });
+    const nm = row.createSpan({ cls: 'pt-types-nm', text: v });
+    const ed = row.createEl('button', { cls: 'pt-types-del pt-types-ed', attr: { 'aria-label': tr('Sửa') } }); ed.innerHTML = I.edit;
+    ed.addEventListener('click', () => {
+      nm.empty();
+      const inp = nm.createEl('input', { cls: 'pt-types-in', attr: { type: 'text' } }); inp.value = v;
+      inp.focus(); inp.select();
+      let done = false;
+      const save = async () => { if (done) return; done = true; const nv = inp.value.trim(); if (nv && nv !== v) await plugin.renameType(v, nv); renderTypeManager(el, plugin); };
+      inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); save(); } else if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); done = true; renderTypeManager(el, plugin); } });
+      inp.addEventListener('blur', save);
+    });
     const del = row.createEl('button', { cls: 'pt-types-del', attr: { 'aria-label': tr('Xoá') } }); del.innerHTML = I.trash;
     del.addEventListener('click', async () => { await plugin.removeTypeFromList(v); renderTypeManager(el, plugin); });
   });
@@ -2304,6 +2327,24 @@ class PieTasksPlugin extends obsidian.Plugin {
     return this.settings.types;
   }
   async addTypeToList(v) { const l = this.typeList(); if (!l.includes(v)) { this.settings.types = [...l, v].sort((a, b) => a.localeCompare(b, 'vi')); await this.saveSettings(); } }
+  async renameType(from, to) {
+    to = String(to || '').replace(/[\]\[,;`]/g, '').trim();
+    if (!to || to === from) return 0;
+    this.settings.types = [...new Set(this.typeList().map(x => (x === from ? to : x)))].sort((a, b) => a.localeCompare(b, 'vi'));
+    await this.saveSettings();
+    let total = 0;
+    const seen = new Set();
+    for (const p of (this.settings.profiles || [])) {
+      const path = obsidian.normalizePath(p.taskPath || 'TASKS.md');
+      if (seen.has(path)) continue; seen.add(path);
+      const f = this.app.vault.getAbstractFileByPath(path);
+      if (!(f instanceof obsidian.TFile)) continue;
+      await this.app.vault.process(f, md => { const r = renameTypeInMd(md, from, to); total += r.n; return r.md; });
+    }
+    this.refreshLiveViews();
+    new obsidian.Notice(tr('Đã đổi tên loại') + ' "' + from + '" → "' + to + '" · ' + total + tr(' task được cập nhật'));
+    return total;
+  }
   async removeTypeFromList(v) { this.settings.types = this.typeList().filter(x => x !== v); await this.saveSettings(); this.refreshLiveViews(); }
   setTypes(t, list) { return this.mutate(md => editLineMd(md, taskKey(t), l => setTypesRaw(l, list))); }
   setNote(t, v) { return this.mutate(md => editLineMd(md, taskKey(t), l => setNoteRaw(l, v)), this.syncWarn(t)); }

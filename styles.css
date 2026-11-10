@@ -564,3 +564,5 @@ body.theme-dark .pb-lane-pop { --pop-bg:#141A24; border-color:rgba(120,170,235,.
 .pie-board-root .ev .ev-prog-track { background:color-mix(in srgb,var(--c) 20%,transparent); }
 .pie-board-root[data-theme="light"] .ev .ev-prog-track { background:color-mix(in srgb,var(--c) 24%,#fff); box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 18%,transparent); }
 .pie-board-root .pb-fopt-ic { display:inline-flex; flex:0 0 auto; } .pie-board-root .pb-fopt-ic svg { width:15px; height:15px; }
+.pt-types-ed:hover { color:var(--interactive-accent) !important; }
+.pt-types-in { width:100%; }
