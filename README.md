@@ -27,9 +27,7 @@ Tasks are standard Markdown checkboxes. Lanes are headings; status, dates and me
 
 ## Installation
 
-**From Community Plugins (once approved):** Settings → Community plugins → Browse → search "Pie Tasks".
-
-**Beta (before approval) via BRAT:** install the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin, then add this repository: `pieofmind/pie-task-plugin-obsidian`.
+**From Community Plugins:** Settings → Community plugins → Browse → search "Pie Tasks" → Install → Enable. To update, use Settings → Community plugins → Check for updates.
 
 **Manual:** download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/pieofmind/pie-task-plugin-obsidian/releases) into `<vault>/.obsidian/plugins/pie-tasks/`, then enable the plugin.
 
