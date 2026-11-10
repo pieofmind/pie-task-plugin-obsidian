@@ -6,7 +6,7 @@
 
 ### Added
 - **Loại nhiệm vụ (type)** — đa chọn, ghi vào dòng task dạng Dataview inline-field `[type:: Công việc, Học tập]` (đọc cả alias `[category:: …]`). Không còn phải gõ tay vào tên task; token cũ đã gõ trong tên được nhận và ẩn khỏi tiêu đề thẻ. Chọn/tạo nhanh trong panel task (tìm kiếm + tick + "Tạo …"); danh sách dùng chung mọi bảng, quản lý ở Settings → Pie Tasks và menu bảng → "Quản lý loại nhiệm vụ".
-- **Bộ lọc kanban**: nút **Lọc** cuối hàng chip trạng thái → popover chọn nhóm (Loại nhiệm vụ / Người phụ trách / Ưu tiên), tick nhiều giá trị, tìm kiếm, đếm số task; huy hiệu số bộ lọc đang bật + "Xoá lọc".
+- **Bộ lọc kanban**: nút **Lọc** cuối hàng chip trạng thái → popover chọn nhóm (Trạng thái / Loại nhiệm vụ / Người phụ trách / Ưu tiên / Ma trận Eisenhower), tick nhiều giá trị, tìm kiếm, đếm số task; huy hiệu số bộ lọc đang bật + "Xoá lọc". Trạng thái liệt kê đủ 13 (gồm Quá hạn, Chưa xử lý); Eisenhower có thêm "Chưa xếp".
 - Tiêu đề board hiện **tên bảng đang mở**: "Pie Tasks - <tên bảng>".
 
 ### Changed

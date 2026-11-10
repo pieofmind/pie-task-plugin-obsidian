@@ -67,7 +67,7 @@ const I18N_EN = {
   'Huỷ việc': 'Cancel task', 'Xoá việc': 'Delete task',
   // list / stats / calendar
   'Danh sách công việc': 'Task list', 'Không có việc khớp bộ lọc.': 'No tasks match the filter.',
-  'Lọc': 'Filter', 'Thêm loại': 'Add category', 'Tìm hoặc tạo loại…': 'Search or create…', 'Tạo': 'Create', 'Chưa có loại nào — gõ để tạo': 'No categories yet — type to create', 'Chưa có loại nào.': 'No categories yet.', 'Xoá': 'Delete', 'Thêm': 'Add', 'Tên loại mới, vd: Học tập': 'New category, e.g. Learning', 'Xoá chỉ gỡ khỏi danh sách chọn — task đã gắn loại đó vẫn giữ nguyên trong file.': 'Deleting only removes it from the picker — tasks keep their value in the file.', 'Quản lý loại nhiệm vụ': 'Manage categories', 'Danh sách loại để chọn nhanh trên task (ghi vào file dạng [type:: …], Dataview đọc được). Dùng chung cho mọi bảng.': 'Categories to pick on tasks (written as [type:: …], readable by Dataview). Shared by all boards.', 'Lọc…': 'Filter…', 'Người phụ trách': 'Assignee', 'Không có lựa chọn': 'No options', 'Xoá lọc': 'Clear filters',
+  'Lọc': 'Filter', 'Thêm loại': 'Add category', 'Tìm hoặc tạo loại…': 'Search or create…', 'Tạo': 'Create', 'Chưa có loại nào — gõ để tạo': 'No categories yet — type to create', 'Chưa có loại nào.': 'No categories yet.', 'Xoá': 'Delete', 'Thêm': 'Add', 'Tên loại mới, vd: Học tập': 'New category, e.g. Learning', 'Xoá chỉ gỡ khỏi danh sách chọn — task đã gắn loại đó vẫn giữ nguyên trong file.': 'Deleting only removes it from the picker — tasks keep their value in the file.', 'Quản lý loại nhiệm vụ': 'Manage categories', 'Danh sách loại để chọn nhanh trên task (ghi vào file dạng [type:: …], Dataview đọc được). Dùng chung cho mọi bảng.': 'Categories to pick on tasks (written as [type:: …], readable by Dataview). Shared by all boards.', 'Lọc…': 'Filter…', 'Người phụ trách': 'Assignee', 'Ma trận Eisenhower': 'Eisenhower matrix', 'Chưa xếp': 'Unsorted', 'Không có lựa chọn': 'No options', 'Xoá lọc': 'Clear filters',
   'Tất cả người': 'Everyone', 'Mọi trạng thái': 'All statuses',
   'Mọi lúc': 'Any time', 'Tuần này': 'This week', 'Tháng này': 'This month', 'Khoảng tùy chọn': 'Custom range',
   'Việc': 'Task', 'Lane': 'Lane', 'Người': 'People', 'Hạn': 'Due',
@@ -170,6 +170,7 @@ const STATUS_RE = new RegExp('`(' + STATUS_LABELS.join('|') + ')`');
 const STATUS_RE_STRIP = new RegExp('\\s*`(' + STATUS_LABELS.join('|') + ')`', 'g');
 
 const PRI = { high: { lab: 'Cao', c: '#E5484D' }, med: { lab: 'Trung bình', c: '#E5A44D' }, normal: { lab: 'Bình thường', c: '#7D848F' }, low: { lab: 'Thấp', c: '#59606B' } };
+const DOT_SVG = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="currentColor"/></svg>';
 const FILTER_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M10 18h4"/></svg>';
 const PRIO_ORDER = { high: 3, med: 2, normal: 1, low: 0 };
 const EISEN = {
@@ -836,7 +837,7 @@ class PieLiveView extends obsidian.ItemView {
     this.filter = 'all';
     this.anchor = today();
     this.rangeStart = today(); this.rangeEnd = today();
-    this.bf = { type: new Set(), owner: new Set(), prio: new Set() }; this.fpop = null; // fpop: { facet, q } khi popover Lọc đang mở
+    this.bf = { status: new Set(), type: new Set(), owner: new Set(), prio: new Set(), eisen: new Set() }; this.fpop = null; // fpop: { facet, q } khi popover Lọc đang mở
     this.fltOwner = 'all'; this.fltPeriod = 'all'; this.fltStatus = 'all'; this.fltFrom = ''; this.fltTo = ''; this.fltLate = false;
     this.calAnchor = today().slice(0, 7) + '-01';
     this.selId = null;
@@ -864,9 +865,11 @@ class PieLiveView extends obsidian.ItemView {
   activeStatus(t) { return t.done ? 'completed' : (t.status && t.status !== 'open' ? t.status : null); }
   matchBoardFlt(t) {
     const f = this.bf;
+    if (f.status.size && !f.status.has(this.cardState(t))) return false;
     if (f.type.size && !t.types.some(x => f.type.has(x))) return false;
     if (f.owner.size && !ownersOf(t).some(x => f.owner.has(x))) return false;
     if (f.prio.size && !f.prio.has(t.prio || 'normal')) return false;
+    if (f.eisen.size && !f.eisen.has(t.eisen || 'none')) return false;
     return true;
   }
   visible(t) { return this.matchState(t) && this.matchDate(t) && this.matchBoardFlt(t); }
@@ -1055,7 +1058,7 @@ class PieLiveView extends obsidian.ItemView {
     const al = bar.createEl('button', { cls: 'pb-add-lane' }); al.innerHTML = I.plus + tr('Thêm lane');
     al.addEventListener('click', () => this.plugin.addLane());
     // bộ lọc kanban: nút Lọc → popover (nhóm bên phải, danh sách tick bên trái)
-    const nAct = this.bf.type.size + this.bf.owner.size + this.bf.prio.size;
+    const nAct = Object.values(this.bf).reduce((n, x) => n + x.size, 0);
     const fg = bar.createEl('div', { cls: 'pb-fgroup' });
     if (nAct) {
       const clr = fg.createEl('button', { cls: 'pb-fclear', text: tr('Xoá lọc') });
@@ -1070,10 +1073,14 @@ class PieLiveView extends obsidian.ItemView {
   filterFacets(tasks) {
     const cnt = fn => v => tasks.filter(t => fn(t, v)).length;
     const types = [...new Set([...this.plugin.typeList(), ...tasks.flatMap(t => t.types)])].sort((a, b) => a.localeCompare(b, 'vi'));
+    // đủ mọi trạng thái như dropdown trong panel task, + 2 trạng thái suy ra: Quá hạn, Chưa xử lý
+    const stKeys = [...SETTABLE, 'over', 'open'].filter(k => STATES[k]);
     return [
+      { key: 'status', ic: I.clock, lab: tr('Trạng thái'), opts: stKeys.map(k => [k, tr(STATES[k].lab), STATES[k].c, SI[k] || SI.dot]), n: cnt((t, v) => this.cardState(t) === v) },
       { key: 'type', ic: I.list, lab: tr('Loại nhiệm vụ'), opts: types.map(x => [x, x]), n: cnt((t, v) => t.types.includes(v)) },
       { key: 'owner', ic: I.person, lab: tr('Người phụ trách'), opts: this.allOwners().map(o => [o, o]), n: cnt((t, v) => ownersOf(t).includes(v)) },
-      { key: 'prio', ic: I.flag, lab: tr('Ưu tiên'), opts: ['high', 'med', 'normal', 'low'].map(k => [k, tr(PRI[k].lab)]), n: cnt((t, v) => (t.prio || 'normal') === v) },
+      { key: 'prio', ic: I.flag, lab: tr('Ưu tiên'), opts: ['high', 'med', 'normal', 'low'].map(k => [k, tr(PRI[k].lab), PRI[k].c, DOT_SVG]), n: cnt((t, v) => (t.prio || 'normal') === v) },
+      { key: 'eisen', ic: I.board, lab: tr('Ma trận Eisenhower'), opts: [...['q1', 'q2', 'q3', 'q4'].map(k => [k, EISEN[k].short + ' · ' + tr(EISEN[k].lab), EISEN[k].c, DOT_SVG]), ['none', tr('Chưa xếp'), 'var(--text-faint)', DOT_SVG]], n: cnt((t, v) => (t.eisen || 'none') === v) },
     ];
   }
   renderFilterPop(anchor, tasks) {
@@ -1099,10 +1106,11 @@ class PieLiveView extends obsidian.ItemView {
         const s = (st.q || '').toLowerCase();
         const opts = f.opts.filter(o => !s || o[1].toLowerCase().includes(s));
         if (!opts.length) { list.createEl('div', { cls: 'pb-fempty', text: tr('Không có lựa chọn') }); return; }
-        opts.forEach(([v, l]) => {
+        opts.forEach(o => { const [v, l] = o;
           const row = list.createEl('label', { cls: 'pb-fopt' });
           const cb = row.createEl('input', { attr: { type: 'checkbox' } });
           cb.checked = this.bf[f.key].has(v);
+          if (o[3]) { const ic = row.createEl('span', { cls: 'pb-fopt-ic' }); ic.innerHTML = o[3]; ic.style.color = o[2]; }
           row.createEl('span', { cls: 'pb-fopt-lb', text: l });
           const n = f.n(v); if (n) row.createEl('span', { cls: 'pb-fopt-n', text: String(n) });
           cb.addEventListener('change', () => { const set = this.bf[f.key]; cb.checked ? set.add(v) : set.delete(v); this.render(); });
