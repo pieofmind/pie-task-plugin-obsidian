@@ -67,7 +67,7 @@ const I18N_EN = {
   'Huỷ việc': 'Cancel task', 'Xoá việc': 'Delete task',
   // list / stats / calendar
   'Danh sách công việc': 'Task list', 'Không có việc khớp bộ lọc.': 'No tasks match the filter.',
-  'Lọc': 'Filter', 'Thêm loại': 'Add category', 'Tìm hoặc tạo loại…': 'Search or create…', 'Tạo': 'Create', 'Chưa có loại nào — gõ để tạo': 'No categories yet — type to create', 'Chưa có loại nào.': 'No categories yet.', 'Xoá': 'Delete', 'Thêm': 'Add', 'Tên loại mới, vd: Học tập': 'New category, e.g. Learning', 'Xoá chỉ gỡ khỏi danh sách chọn — task đã gắn loại đó vẫn giữ nguyên trong file.': 'Deleting only removes it from the picker — tasks keep their value in the file.', 'Quản lý loại nhiệm vụ': 'Manage categories', 'Sửa': 'Edit', 'Đã đổi tên loại': 'Renamed category', ' task được cập nhật': ' task(s) updated', 'Danh sách loại để chọn nhanh trên task (ghi vào file dạng [type:: …], Dataview đọc được). Dùng chung cho mọi bảng.': 'Categories to pick on tasks (written as [type:: …], readable by Dataview). Shared by all boards.', 'Lọc…': 'Filter…', 'Người phụ trách': 'Assignee', 'Ma trận Eisenhower': 'Eisenhower matrix', 'Chưa xếp': 'Unsorted', 'Không có lựa chọn': 'No options', 'Xoá lọc': 'Clear filters',
+  'Lọc': 'Filter', 'Chọn việc': 'Select task', 'Chọn tất cả việc trong lane': 'Select all tasks in lane', ' việc đã chọn': ' selected', 'Chuyển lane': 'Move to lane', 'Bỏ chọn': 'Clear selection', 'Xoá ': 'Delete ', ' việc đã chọn? Không hoàn tác được.': ' selected task(s)? This cannot be undone.', 'Đã sửa. Lưu ý: task 1Office có thể bị sync ghi đè.': 'Updated. Note: 1Office tasks may be overwritten by sync.', 'Thêm loại': 'Add category', 'Tìm hoặc tạo loại…': 'Search or create…', 'Tạo': 'Create', 'Chưa có loại nào — gõ để tạo': 'No categories yet — type to create', 'Chưa có loại nào.': 'No categories yet.', 'Xoá': 'Delete', 'Thêm': 'Add', 'Tên loại mới, vd: Học tập': 'New category, e.g. Learning', 'Xoá chỉ gỡ khỏi danh sách chọn — task đã gắn loại đó vẫn giữ nguyên trong file.': 'Deleting only removes it from the picker — tasks keep their value in the file.', 'Quản lý loại nhiệm vụ': 'Manage categories', 'Sửa': 'Edit', 'Đã đổi tên loại': 'Renamed category', ' task được cập nhật': ' task(s) updated', 'Danh sách loại để chọn nhanh trên task (ghi vào file dạng [type:: …], Dataview đọc được). Dùng chung cho mọi bảng.': 'Categories to pick on tasks (written as [type:: …], readable by Dataview). Shared by all boards.', 'Lọc…': 'Filter…', 'Người phụ trách': 'Assignee', 'Ma trận Eisenhower': 'Eisenhower matrix', 'Chưa xếp': 'Unsorted', 'Không có lựa chọn': 'No options', 'Xoá lọc': 'Clear filters',
   'Tất cả người': 'Everyone', 'Mọi trạng thái': 'All statuses',
   'Mọi lúc': 'Any time', 'Tuần này': 'This week', 'Tháng này': 'This month', 'Khoảng tùy chọn': 'Custom range',
   'Việc': 'Task', 'Lane': 'Lane', 'Người': 'People', 'Hạn': 'Due',
@@ -669,6 +669,25 @@ function moveTaskMd(md, key, targetLaneNm) {
   lines.splice(at, 0, ...block);
   return lines.join('\n');
 }
+// Thao tác hàng loạt (pure: md -> md). Key có số dòng nên đổi sau mỗi lần sửa →
+// nhận diện task bằng chữ ký ổn định { id | lane+title+thứ tự trùng tên }, parse lại mỗi bước.
+function bulkSigs(tasks, picked) {
+  return picked.map(t => ({ id: t.id, lane: t.lane, title: t.title, nth: tasks.filter(x => x.lane === t.lane && x.title === t.title && x.line < t.line).length }));
+}
+function bulkMd(md, sigs, op) {
+  const gone = {}; // số task cùng (lane,title) đã bị đưa khỏi lane → bù vào nth
+  for (const s of sigs) {
+    const { tasks } = parseTasks(md, '');
+    const g = s.lane + '::' + s.title;
+    const t = s.id ? tasks.find(x => x.id === s.id) : tasks.filter(x => x.lane === s.lane && x.title === s.title)[s.nth - (gone[g] || 0)];
+    if (!t) continue;
+    const nw = op(md, taskKey(t), t);
+    if (nw === md) continue;
+    md = nw;
+    if (!s.id && !parseTasks(md, '').tasks.some(x => x.lane === s.lane && x.title === s.title && x.line === t.line)) gone[g] = (gone[g] || 0) + 1;
+  }
+  return md;
+}
 function moveTaskToPosMd(md, key, targetLaneNm, beforeKey) {
   // Di chuyển task tới vị trí cụ thể trong lane (kéo đổi thứ tự). beforeKey=null → cuối lane.
   if (beforeKey === key) return md;
@@ -694,6 +713,98 @@ function moveTaskToPosMd(md, key, targetLaneNm, beforeKey) {
   lines.splice(insertAt, 0, ...block);
   return lines.join('\n');
 }
+// ---------- Duyệt / Yêu cầu sửa (pure: md -> md) ----------
+const DECIDE = {
+  duyet: { verb: 'DUYỆT', icon: '✅', word: 'Duyệt' },
+  yeu_cau_sua: { verb: 'YÊU CẦU SỬA', icon: '↩️', word: 'Yêu cầu sửa' },
+  huy_duyet: { verb: 'HUỶ DUYỆT' }
+};
+const UNSENT_TAIL = ' · ⚠️ chưa báo bot';
+function isReviewTask(t, reviewLane) { return !t.done && (t.status === 'review' || t.laneName === reviewLane); }
+function pad2(n) { return String(n).padStart(2, '0'); }
+function stampOf(d) { return iso(d) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+function isoWithOffset(d) {
+  const o = -d.getTimezoneOffset(), a = Math.abs(o);
+  return iso(d) + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds()) + (o < 0 ? '-' : '+') + pad2(Math.floor(a / 60)) + ':' + pad2(a % 60);
+}
+// block đầy đủ = dòng task + mọi dòng thụt vào liền sau (không chỉ checkbox con như blockRangeOf)
+function fullBlockEnd(lines, start) {
+  let end = start;
+  while (end + 1 < lines.length && /^[ \t]+\S/.test(lines[end + 1])) end++;
+  return end;
+}
+function setChipRaw(raw, label) {
+  return STATUS_RE.test(raw) ? raw.replace(STATUS_RE, '`' + label + '`') : raw.replace(/\s+$/, '') + ' `' + label + '`';
+}
+function logLineOf(kind, stamp, who, note) { return '\t- ' + DECIDE[kind].icon + ' ' + DECIDE[kind].word + ' ' + stamp + ' · 👤 ' + who + (note ? ' · "' + note + '"' : ''); }
+function findLogIdx(lines, base) { return lines.findIndex(l => l === base || l === base + UNSENT_TAIL); }
+// chèn block vào đầu lane (hoặc vị trí idx nếu cho); trả false nếu thiếu lane
+function putBlock(lines, laneNm, block, idx) {
+  const rng = findLane(lines, laneNm);
+  if (!rng) return false;
+  const bl = taskBlocks(lines, rng);
+  const at = idx != null && idx < bl.length ? bl[idx].start : (idx == null && bl.length ? bl[0].start : insertPos(lines, rng));
+  lines.splice(at, 0, ...block);
+  return true;
+}
+// kind: 'duyet' | 'yeu_cau_sua'. Trả { md, undo } hoặc null (không thấy thẻ / thiếu lane đích)
+function decideMd(md, key, kind, o) {
+  const t = findTask(parseTasks(md, '').tasks, key);
+  if (!t) return null;
+  const lines = md.split('\n');
+  const start = t.line, end = fullBlockEnd(lines, start);
+  const orig = lines.slice(start, end + 1);
+  const approve = kind === 'duyet';
+  let head = setChipRaw(orig[0], approve ? 'Hoàn thành' : 'Đang làm');
+  head = approve ? head.replace(/- \[[ xX]\]/, '- [x]') : head.replace(/- \[[xX]\]/, '- [ ]');
+  const log = logLineOf(kind, o.stamp, o.who, o.note);
+  const block = [head, ...orig.slice(1), log];
+  const rng0 = findLane(lines, t.laneName);
+  const origIdx = taskBlocks(lines, rng0).findIndex(b => b.start === start);
+  lines.splice(start, end - start + 1);
+  if (!putBlock(lines, approve ? o.laneApproved : o.laneRevise, block, null)) return null;
+  return { md: lines.join('\n'), log, undo: { log, orig, origLane: t.laneName, origIdx } };
+}
+function undoDecideMd(md, u) {
+  const lines = md.split('\n');
+  const li = findLogIdx(lines, u.log);
+  if (li < 0) return null;
+  let s = li;
+  while (s >= 0 && !/^- \[[ xX]\]/.test(lines[s])) s--;
+  if (s < 0) return null;
+  const e = fullBlockEnd(lines, s);
+  if (e < li) return null;
+  lines.splice(s, e - s + 1);
+  if (!putBlock(lines, u.origLane, u.orig, u.origIdx)) return null;
+  return lines.join('\n');
+}
+function markUnsentMd(md, base, unsent) {
+  const lines = md.split('\n');
+  const i = findLogIdx(lines, base);
+  if (i < 0) return md;
+  lines[i] = unsent ? base + UNSENT_TAIL : base;
+  return lines.join('\n');
+}
+function fieldOf(raw, name) { const m = raw.match(new RegExp('\\[' + name + '::\\s*([^\\]]*?)\\s*\\]')); return m && m[1] ? m[1] : null; }
+function buildPayload(kind, t, o) {
+  const title = t.title.replace(/\[[\w-]+::[^\]]*\]/g, '').replace(/\s{2,}/g, ' ').trim(); // bỏ field Dataview còn sót trong tiêu đề
+  const cnt = fieldOf(t.raw, 'cnt'), gate = fieldOf(t.raw, 'gate');
+  const lam = parseOwners(t.raw).map(x => (x.kind === 'ai' ? '🤖 ' : '👤 ') + x.name).join(', ') || null;
+  const parts = ['Anh ' + o.who + ' ' + DECIDE[kind].verb + ': "' + title + '"'];
+  if (cnt) parts.push(cnt);
+  if (gate) parts.push(gate);
+  if (lam) parts.push('người làm ' + lam);
+  if (o.note) parts.push('ghi chú: "' + o.note + '"');
+  parts.push('file ' + o.file);
+  return {
+    task: parts.join(' · '), channel: o.channel || '', needs_approval: false,
+    pie: { ket_qua: kind, tieu_de: title, cnt, gate, nguoi_lam: lam, nguoi_duyet: o.who, ghi_chu: o.note || null, file: o.file, board: o.board, luc: isoWithOffset(o.now) }
+  };
+}
+function maskUrl(u) {
+  try { const x = new URL(u); const seg = x.pathname.split('/').filter(Boolean)[0]; return x.origin + '/' + (seg ? seg + '/' : '') + '…'; } catch (e) { return '…'; }
+}
+
 function toggleCheckMd(md, key, idx) {
   const { tasks } = parseTasks(md, '');
   const t = findTask(tasks, key);
@@ -850,7 +961,8 @@ class PieLiveView extends obsidian.ItemView {
     this.filter = 'all';
     this.anchor = today();
     this.rangeStart = today(); this.rangeEnd = today();
-    this.bf = { status: new Set(), type: new Set(), owner: new Set(), prio: new Set(), eisen: new Set() }; this.fpop = null; // fpop: { facet, q } khi popover Lọc đang mở
+    this.bf = { status: new Set(), type: new Set(), owner: new Set(), prio: new Set(), eisen: new Set() }; this.picked = new Set(); // keys task đang chọn hàng loạt
+    this.fpop = null; // fpop: { facet, q } khi popover Lọc đang mở
     this.fltOwner = 'all'; this.fltPeriod = 'all'; this.fltStatus = 'all'; this.fltFrom = ''; this.fltTo = ''; this.fltLate = false;
     this.calAnchor = today().slice(0, 7) + '-01';
     this.selId = null;
@@ -892,6 +1004,7 @@ class PieLiveView extends obsidian.ItemView {
     const c = this.containerEl.children[1];
     if (this._fpopOff) this._fpopOff();
     if (this._tpOff) this._tpOff();
+    if (this._bulkOff) this._bulkOff();
     c.empty();
     c.removeClass('pie-live-root');
     c.addClass('pie-board-root');
@@ -916,6 +1029,9 @@ class PieLiveView extends obsidian.ItemView {
     else if (this.view === 'agenda') this.renderAgenda(main);
     else if (this.view === 'calendar') this.renderCalendar(main);
     else if (this.view === 'dashboard') this.renderDashboard(main);
+    const live = new Set(this.allTasks().map(taskKey));
+    [...this.picked].forEach(k => { if (!live.has(k)) this.picked.delete(k); });
+    this.renderBulkBar();
     this.drawerEl = c.createEl('aside', { cls: 'pb-drawer' });
     this.scrimEl = c.createEl('div', { cls: 'pb-scrim' });
     this.scrimEl.addEventListener('click', () => this.closeDrawer());
@@ -1151,6 +1267,60 @@ class PieLiveView extends obsidian.ItemView {
     this._fpopOff = () => { document.removeEventListener('mousedown', outside); document.removeEventListener('keydown', esc); this._fpopOff = null; };
   }
 
+  togglePick(t, card) {
+    const k = taskKey(t);
+    if (this.picked.has(k)) this.picked.delete(k); else this.picked.add(k);
+    if (card) card.toggleClass('picked', this.picked.has(k));
+    this.renderBulkBar();
+  }
+  pickLane(laneRaw) {
+    this.allTasks().filter(t => t.lane === laneRaw && this.visible(t)).forEach(t => this.picked.add(taskKey(t)));
+    this.render();
+  }
+  clearPick() { this.picked.clear(); this.render(); }
+  renderBulkBar() {
+    if (this._bulkOff) this._bulkOff();
+    if (!this.root) return;
+    this.root.querySelectorAll('.pb-bulk, .pb-bulk-menu').forEach(e => e.remove());
+    this.root.toggleClass('picking', this.picked.size > 0);
+    if (!this.picked.size || this.view !== 'board') return;
+    const bar = this.root.createEl('div', { cls: 'pb-bulk' });
+    bar.createEl('span', { cls: 'pb-bulk-n', text: this.picked.size + tr(' việc đã chọn') });
+    const keys = () => [...this.picked];
+    const done = () => { this.picked.clear(); };
+    const mkMenu = (btn, opts, onPick) => {
+      this.root.querySelectorAll('.pb-bulk-menu').forEach(e => e.remove());
+      const m = this.root.createEl('div', { cls: 'pb-fmenu pb-bulk-menu' });
+      opts.forEach(([v, l, c, ic]) => {
+        const it = m.createEl('div', { cls: 'pb-fitem', attr: { role: 'button' } });
+        if (ic) { const s = it.createEl('span', { cls: 'pb-fitem-ic' }); s.innerHTML = ic; if (c) s.style.color = c; }
+        it.createEl('span', { cls: 'pb-fitem-lb', text: l });
+        it.addEventListener('click', async () => { m.remove(); const ks = keys(); done(); await onPick(v, ks); });
+      });
+      const r = btn.getBoundingClientRect(), rr = this.root.getBoundingClientRect();
+      m.style.left = Math.max(8, r.left - rr.left) + 'px';
+      m.style.bottom = (rr.bottom - r.top + 8) + 'px';
+    };
+    const mkBtn = (ic, lab, cls, on) => { const b = bar.createEl('button', { cls: 'pb-bulk-btn ' + (cls || '') }); b.innerHTML = ic; b.appendText(lab); b.addEventListener('click', ev => { ev.stopPropagation(); on(b); }); return b; };
+    mkBtn(I.clock, tr('Trạng thái'), '', b => mkMenu(b, SETTABLE.map(k => [k, tr(STATES[k].lab), STATES[k].c, SI[k] || SI.dot]), (k, ks) => this.plugin.bulkStatus(ks, k)));
+    mkBtn(I.board, tr('Chuyển lane'), '', b => mkMenu(b, this.plugin.taskData.lanes.map(l => [laneName(l), laneName(l)]), (nm, ks) => this.plugin.bulkMove(ks, nm)));
+    mkBtn(I.trash, tr('Xoá'), 'danger', async () => { const ks = keys(); const n = await this.plugin.bulkDelete(ks); if (n) done(); });
+    const x = bar.createEl('button', { cls: 'pb-bulk-x', attr: { 'aria-label': tr('Bỏ chọn') } }); x.innerHTML = I.x;
+    x.addEventListener('click', () => this.clearPick());
+    const key = e => { if (e.key === 'Escape' && !document.querySelector('.modal-container')) this.clearPick(); };
+    const outside = e => { if (!e.target.closest('.pb-bulk-menu, .pb-bulk')) this.root.querySelectorAll('.pb-bulk-menu').forEach(m => m.remove()); };
+    document.addEventListener('keydown', key); document.addEventListener('mousedown', outside);
+    this._bulkOff = () => { document.removeEventListener('keydown', key); document.removeEventListener('mousedown', outside); this._bulkOff = null; };
+  }
+  decideBtns(host, t) {
+    if (!this.plugin.isReview(t)) return;
+    const w = host.createEl('span', { cls: 'pt-dec' });
+    [['duyet', 'Duyệt', 'ok'], ['yeu_cau_sua', 'Yêu cầu sửa', 'no']].forEach(([k, lab, c]) => {
+      const b = w.createEl('button', { cls: 'pt-dec-' + c, text: lab, attr: { type: 'button', draggable: 'false' } });
+      ['mousedown', 'dragstart'].forEach(e => b.addEventListener(e, ev => ev.stopPropagation()));
+      b.addEventListener('click', ev => { ev.stopPropagation(); this.plugin.decide(t, k); });
+    });
+  }
   renderCard(colEl, t) {
     const rs = t.done ? 'completed' : (t.status && t.status !== 'open' ? t.status : 'open');
     const RS = STATES[rs];
@@ -1160,6 +1330,10 @@ class PieLiveView extends obsidian.ItemView {
     card.style.setProperty('--c', cc); card.style.setProperty('--sc', cc);
     const top = card.createEl('div', { cls: 'ev-top' });
     const tile = top.createEl('span', { cls: 'ev-tile' }); tile.innerHTML = I[cardIcon(t)] || I.list;
+    const pk = tile.createEl('span', { cls: 'ev-pick', attr: { role: 'checkbox', 'aria-label': tr('Chọn việc') } }); pk.innerHTML = I.check;
+    if (this.picked.has(taskKey(t))) card.addClass('picked');
+    pk.addEventListener('mousedown', ev => ev.stopPropagation());
+    pk.addEventListener('click', ev => { ev.stopPropagation(); this.togglePick(t, card); });
     if (t.startDate || t.date || t.s) { const chip = top.createEl('span', { cls: 'ev-time-chip' }); chip.innerHTML = I.clock; let x = ''; if (t.startDate && t.date && t.startDate !== t.date) x = fmtDate(t.startDate) + '→' + fmtDate(t.date); else if (t.date) x = fmtDate(t.date); else if (t.startDate) x = fmtDate(t.startDate); if (t.s && t.e) x += (x ? ' · ' : '') + t.s + '–' + t.e; chip.appendText(x); }
     const title = card.createEl('div', { cls: 'ev-title' });
     if (t.pri && !t.done) title.createEl('span', { cls: 'ev-pri' });
@@ -1170,6 +1344,8 @@ class PieLiveView extends obsidian.ItemView {
     if (t.over) { const ov = chips.createEl('span', { cls: 'ev-over' }); ov.innerHTML = SI.over; ov.appendText(tr('Quá hạn')); }
     if (t.check.length) { const cc = chips.createEl('span', { cls: 'ev-check', text: '✓ ' + t.check.filter(x => x[1]).length + '/' + t.check.length }); }
     if (t.eisen && EISEN[t.eisen]) { const eb = chips.createEl('span', { cls: 'ev-eisen', text: EISEN[t.eisen].short }); eb.style.color = EISEN[t.eisen].c; eb.style.background = 'color-mix(in srgb,' + EISEN[t.eisen].c + ' 15%,transparent)'; }
+    this.decideBtns(bottom, t);
+    card.addEventListener('contextmenu', ev => this.plugin.decideMenu(ev, t));
     const pgi = progressInfo(t, today());
     if (pgi) {
       const pr = bottom.createEl('div', { cls: 'ev-prog' });
@@ -1194,7 +1370,7 @@ class PieLiveView extends obsidian.ItemView {
     const owners = ownersOf(t);
     if (owners.length) { const av = people.createEl('span', { cls: 'avatars' }); owners.slice(0, 3).forEach(o => avEl(av, o)); people.createEl('span', { cls: 'ev-going', text: owners.length > 1 ? owners.length + tr(' người') : owners[0] }); }
     else people.createEl('span', { cls: 'ev-going', text: tr('Chưa giao') });
-    card.addEventListener('click', () => this.openCard(t));
+    card.addEventListener('click', ev => { if (this.picked.size || ev.metaKey || ev.ctrlKey) { this.togglePick(t, card); return; } this.openCard(t); });
     card.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); this.openCard(t); } });
     card.addEventListener('dragstart', ev => { ev.dataTransfer.setData('text/plain', taskKey(t)); ev.dataTransfer.effectAllowed = 'move'; card.classList.add('dragging'); this._draggingKey = taskKey(t); this._dragEl = card; this._dragAnchor = null; this._reorderCommitted = false; });
     card.addEventListener('dragend', () => { card.classList.remove('dragging'); this._draggingKey = null; this._dragEl = null; this._dragAnchor = null; this._clearCardIndicators(); if (!this._reorderCommitted) this.render(); this._reorderCommitted = false; });
@@ -1257,7 +1433,7 @@ class PieLiveView extends obsidian.ItemView {
   openLaneMenu(nm, laneRaw, btn) {
     this.closeLaneMenu();
     const pop = document.createElement('div'); pop.className = 'pb-lane-pop'; this._lanePop = pop;
-    const items = [[tr('Sửa tên lane'), () => this.plugin.renameLane(nm)], ['div'], [tr('Chèn lane trước'), () => this.plugin.insertLane(nm, true)], [tr('Chèn lane sau'), () => this.plugin.insertLane(nm, false)], ['div'], [tr('Sắp xếp theo tên'), () => this.plugin.sortLane(nm, 'text')], [tr('Sắp xếp theo hạn'), () => this.plugin.sortLane(nm, 'due')], ['div'], [tr('Xoá lane'), () => this.plugin.deleteLane(nm), 'danger']];
+    const items = [[tr('Chọn tất cả việc trong lane'), () => this.pickLane(laneRaw)], ['div'], [tr('Sửa tên lane'), () => this.plugin.renameLane(nm)], ['div'], [tr('Chèn lane trước'), () => this.plugin.insertLane(nm, true)], [tr('Chèn lane sau'), () => this.plugin.insertLane(nm, false)], ['div'], [tr('Sắp xếp theo tên'), () => this.plugin.sortLane(nm, 'text')], [tr('Sắp xếp theo hạn'), () => this.plugin.sortLane(nm, 'due')], ['div'], [tr('Xoá lane'), () => this.plugin.deleteLane(nm), 'danger']];
     items.forEach(it => { if (it[0] === 'div') { pop.createDiv('pb-pop-div'); return; } const b = pop.createEl('button', { text: it[0], cls: it[2] || '' }); b.addEventListener('click', () => { this.closeLaneMenu(); it[1](); }); });
     document.body.appendChild(pop);
     const r = btn.getBoundingClientRect();
@@ -1453,6 +1629,7 @@ class PieLiveView extends obsidian.ItemView {
     const acts = dw.createEl('div', { cls: 'dw-actions' });
     const mk = (cls, ic, lab, fn) => { const b = acts.createEl('button', { cls: 'act ' + cls }); b.innerHTML = ic; b.appendText(' ' + lab); b.addEventListener('click', fn); };
     mk('primary', I.check, t.done ? tr('Bỏ xong') : tr('Đánh dấu xong'), () => this.plugin.toggleTask(t));
+    if (this.plugin.isReview(t)) { mk('primary', I.check, 'Duyệt', () => this.plugin.decide(t, 'duyet')); mk('', SI.cancel, 'Yêu cầu sửa', () => this.plugin.decide(t, 'yeu_cau_sua')); }
     mk('', I.copy, tr('Nhân bản'), () => this.plugin.duplicateTask(t));
     mk('', SI.cancel, tr('Huỷ việc'), () => this.plugin.setStatus(t, 'cancel'));
     mk('danger', I.trash, tr('Xoá việc'), () => this.plugin.deleteTask(t));
@@ -1591,7 +1768,8 @@ class PieLiveView extends obsidian.ItemView {
       const st = this.cardState(t), S = STATES[st];
       const row = lst.createEl('div', { cls: 'pb-lrow' + (t.done ? ' done-row' : '') }); row.dataset.key = taskKey(t);
       const dot = row.createEl('span', { cls: 'pb-ldot' }); dot.style.background = S.c;
-      const ti = row.createEl('span', { cls: 'pb-ltitle' }); if (t.pri && !t.done) ti.createEl('span', { cls: 'ev-pri' }); ti.appendText(t.title);
+      const ti = row.createEl('span', { cls: 'pb-ltitle' }); if (t.pri && !t.done) ti.createEl('span', { cls: 'ev-pri' }); ti.appendText(t.title); this.decideBtns(ti, t);
+      row.addEventListener('contextmenu', ev => this.plugin.decideMenu(ev, t));
       row.createEl('span', { cls: 'pb-lmeta', text: t.laneName });
       const as = row.createEl('span', { cls: 'pb-lassignee' }); const owners = ownersOf(t); if (owners.length) { avEl(as, owners[0]); as.createEl('span', { cls: 'anm', text: owners[0] + (owners.length > 1 ? ' +' + (owners.length - 1) : '') }); } else as.createEl('span', { cls: 'anm', text: '—' });
       row.createEl('span', { cls: 'pb-lmeta', text: (t.date ? fmtDate(t.date) : '—') + (t.s ? ' ' + t.s : '') });
@@ -1739,6 +1917,26 @@ class PromptModal extends obsidian.Modal {
 }
 function askText(app, title, value) { return new Promise(res => new PromptModal(app, { title, value, type: 'text' }, res).open()); }
 function askConfirm(app, message, title) { return new Promise(res => new PromptModal(app, { title: title || tr('Xác nhận'), message, type: 'confirm', okText: tr('Đồng ý') }, res).open()); }
+
+// ---------- hộp thoại ghi chú cho Duyệt / Yêu cầu sửa ----------
+class DecideModal extends obsidian.Modal {
+  constructor(app, opts, resolve) { super(app); this.opts = opts; this.resolve = resolve; this.done = false; }
+  onOpen() {
+    const { contentEl, titleEl } = this;
+    titleEl.setText(this.opts.title);
+    contentEl.createEl('p', { text: this.opts.heading, attr: { style: 'margin:0 0 6px;line-height:1.5;' } });
+    const ta = contentEl.createEl('textarea', { attr: { rows: '3', placeholder: this.opts.placeholder, style: 'width:100%;' } });
+    const btns = contentEl.createDiv({ attr: { style: 'display:flex;gap:8px;justify-content:flex-end;margin-top:16px;' } });
+    btns.createEl('button', { text: tr('Huỷ') }).addEventListener('click', () => this.close());
+    const ok = btns.createEl('button', { text: tr('Xác nhận'), cls: 'mod-cta' });
+    const sync = () => { ok.disabled = this.opts.required && !ta.value.trim(); };
+    ta.addEventListener('input', sync); sync();
+    ok.addEventListener('click', () => { this.done = true; this.resolve(ta.value.replace(/\s+/g, ' ').trim()); this.close(); });
+    window.setTimeout(() => ta.focus(), 0);
+  }
+  onClose() { this.contentEl.empty(); if (!this.done) this.resolve(null); }
+}
+function askDecide(app, opts) { return new Promise(res => new DecideModal(app, opts, res).open()); }
 
 // ---------- modal thêm/sửa lane: nhập tên + chọn icon ----------
 class LaneModal extends obsidian.Modal {
@@ -2005,7 +2203,8 @@ function makeProfile(o) {
     icon: '',            // iconType='icon' → key trong I ; iconType='image' → path ảnh trong vault
     color: '#2F6DB0',
     taskPath: 'TASKS.md', peoplePath: '', // '' → fallback defaultPeoplePath / DEFAULT_PEOPLE
-    viewState: {}, laneStyles: {}
+    viewState: {}, laneStyles: {},
+    webhookUrl: '', webhookChannel: '' // rỗng → dùng cài đặt chung
   }, o || {});
 }
 const IMG_RE = /\.(png|jpe?g|webp|gif|svg|bmp|avif)$/i;
@@ -2028,7 +2227,7 @@ const DASH_START = '<!-- pie:dashboard:start · vùng tự sinh theo Setting "Ph
 const DASH_END = '<!-- pie:dashboard:end -->';
 const DASH_INTRO = '---\ntitle: Việc con theo dự án\ntype: dashboard\nllm_managed: true\ntags:\n  - dashboard\n  - project\n---\n> [!info] Tổng hợp tự động (Pie Tasks × Dataview)\n> Mọi **task con** gắn field **Dự án** trong Pie Tasks được gom theo từng dự án ở đây — tick được trực tiếp, cập nhật live. Xem **tiến độ tổng** (số việc / %) theo dự án ở bảng `Dashboard Projects.base`. Đổi phạm vi ở Settings → Pie Tasks.\n';
 const DEFAULT_PROJECTS_FOLDER = '3.PROCESS/02.PROJECTS';
-const DEFAULTS = { profiles: null, activeId: null, defaultPeoplePath: DEFAULT_PEOPLE, taskDashboardScope: 'all', taskDashboardPath: DEFAULT_DASH, projectsFolder: DEFAULT_PROJECTS_FOLDER, stepsOnCard: false, lang: 'vi' };
+const DEFAULTS = { profiles: null, activeId: null, defaultPeoplePath: DEFAULT_PEOPLE, taskDashboardScope: 'all', taskDashboardPath: DEFAULT_DASH, projectsFolder: DEFAULT_PROJECTS_FOLDER, stepsOnCard: false, lang: 'vi', webhookUrl: '', webhookChannel: '', approverName: 'Nguyên', laneReview: 'Chờ duyệt', laneApproved: 'Hoàn thành', laneRevise: 'Đang làm', webhookQueue: [] };
 // Chữ cái đại diện bảng = ký tự chữ/số đầu tiên của tên (như logo 'P' cũ, đẹp hơn emoji)
 function profLetter(name) { const m = (name || '').match(/[\p{L}\p{N}]/u); return m ? m[0].toUpperCase() : 'B'; }
 
@@ -2053,11 +2252,13 @@ class PieTasksPlugin extends obsidian.Plugin {
     this.addCommand({ id: 'open-demo-studio', name: tr('Mở giao diện mẫu — Studio'), callback: () => this.openDemo('studio') });
     this.addCommand({ id: 'reload-tasks', name: tr('Tải lại TASKS.md'), callback: () => this.reload() });
     this.addCommand({ id: 'recover-boards', name: tr('Khôi phục bảng từ bản cài trước'), callback: async () => { const ok = await this._recoverLegacyData(true); if (ok) { this.migrateProfiles(); this.reseedViews(); await this.reload(); } else new obsidian.Notice('Pie Tasks: không tìm thấy bảng cũ để khôi phục.'); } });
+    this.addCommand({ id: 'undo-decide', name: 'Hoàn tác duyệt cuối (trong 10 giây)', callback: () => this.undoLast() });
+    this.addCommand({ id: 'resend-hook', name: 'Gửi lại báo bot chưa gửi được', callback: () => this.resendQueue() });
     this.addSettingTab(new PieSettingTab(this.app, this));
     this.registerEvent(this.app.vault.on('modify', f => { if (this.taskFile && f && f.path === this.taskFile.path) this.reload(); }));
     this.registerEvent(this.app.workspace.on('css-change', () => this.refreshLiveViews()));
     // Vault index có thể chưa sẵn sàng lúc onload (nhất là mobile / khi view được khôi phục) → load khi layout ready
-    this.app.workspace.onLayoutReady(() => this.reload());
+    this.app.workspace.onLayoutReady(async () => { await this.reload(); this.resendQueue(true); }); // tự gửi lại bản tin tồn một lần
     // Nhắc lịch (a): khi app đang mở, mỗi phút quét task tới giờ bắt đầu/kết thúc → Notice 1 lần/ngày/mốc.
     this.registerInterval(window.setInterval(() => this.checkReminders(), 60000));
   }
@@ -2398,6 +2599,20 @@ class PieTasksPlugin extends obsidian.Plugin {
   addTask(laneRaw) { const nm = laneName(laneRaw); this._pendingNew = { lane: laneRaw, title: tr('Việc mới') }; return this.mutate(md => addTaskMd(md, nm, { title: tr('Việc mới'), date: today(), s: '09:00', e: '10:00' }), isSyncedLane(laneRaw) ? 'Đã thêm. Lưu ý: lane 1Office sẽ bị sync ghi đè.' : null); }
   async deleteTask(t) { if (!(await askConfirm(this.app, 'Xoá việc "' + t.title + '"?'))) return; await this.mutate(md => deleteTaskMd(md, taskKey(t)), this.syncWarn(t)); }
   duplicateTask(t) { return this.mutate(md => duplicateTaskMd(md, taskKey(t))); }
+  async bulkApply(keys, op) {
+    const tasks = (this.taskData && this.taskData.tasks) || [];
+    const picked = keys.map(k => findTask(tasks, k)).filter(Boolean).sort((a, b) => a.line - b.line);
+    if (!picked.length) return 0;
+    const sigs = bulkSigs(tasks, picked);
+    await this.mutate(md => bulkMd(md, sigs, op), picked.some(t => t.synced) ? tr('Đã sửa. Lưu ý: task 1Office có thể bị sync ghi đè.') : null);
+    return picked.length;
+  }
+  bulkStatus(keys, k) { return this.bulkApply(keys, (md, key) => editLineMd(md, key, l => setStatusRaw(l, k))); }
+  bulkMove(keys, laneNm) { return this.bulkApply(keys, (md, key) => moveTaskMd(md, key, laneNm)); }
+  async bulkDelete(keys) {
+    if (!(await askConfirm(this.app, tr('Xoá ') + keys.length + tr(' việc đã chọn? Không hoàn tác được.')))) return 0;
+    return this.bulkApply(keys, (md, key) => deleteTaskMd(md, key));
+  }
   moveTask(key, targetLaneNm) { const t = findTask(this.taskData ? this.taskData.tasks : [], key); return this.mutate(md => moveTaskMd(md, key, targetLaneNm), (t && t.synced) ? 'Đã chuyển. Lưu ý: task 1Office có thể bị sync đưa lại.' : null); }
   moveTaskToPos(key, targetLaneNm, beforeKey) { const t = findTask(this.taskData ? this.taskData.tasks : [], key); return this.mutate(md => moveTaskToPosMd(md, key, targetLaneNm, beforeKey), (t && t.synced) ? 'Đã sắp xếp. Lưu ý: lane 1Office bị sync ghi đè thứ tự.' : null); }
   _laneRaw(nm) { return ((this.taskData && this.taskData.lanes) || []).find(l => laneName(l) === nm) || ''; }
@@ -2409,6 +2624,98 @@ class PieTasksPlugin extends obsidian.Plugin {
   async deleteLane(nm) { if (!(await askConfirm(this.app, 'Xoá lane "' + nm + '"? Việc trong lane sẽ dồn sang lane kề.'))) return; await this.mutate(md => deleteLaneMd(md, nm)); }
   moveLane(src, tgt, before) { if (src === tgt) return; return this.mutate(md => moveLaneMd(md, src, tgt, before)); }
   sortLane(nm, mode) { return this.mutate(md => sortLaneMd(md, nm, mode)); }
+
+  // ---- Duyệt / Yêu cầu sửa + báo bot qua webhook ----
+  isReview(t) { return isReviewTask(t, this.settings.laneReview); }
+  hookCfg() { const s = this.settings, p = this.prof(); return { url: p.webhookUrl || s.webhookUrl || '', channel: p.webhookChannel || s.webhookChannel || '' }; }
+  async postHook(payload, profId) {
+    const s = this.settings, p = s.profiles.find(x => x.id === profId) || this.prof();
+    const url = p.webhookUrl || s.webhookUrl;
+    if (!url) return { skipped: true };
+    let timer;
+    try {
+      const res = await Promise.race([
+        obsidian.requestUrl({ url, method: 'POST', contentType: 'application/json', body: JSON.stringify(payload), throw: false }),
+        new Promise((_, rej) => { timer = window.setTimeout(() => rej(new Error('quá 5 giây')), 5000); })
+      ]);
+      return res.status >= 200 && res.status < 300 ? { ok: true } : { err: 'HTTP ' + res.status };
+    } catch (e) {
+      return { err: String((e && e.message) || e).split(url).join('…').slice(0, 120) }; // không để lộ URL bí mật
+    } finally { window.clearTimeout(timer); }
+  }
+  async _editPath(path, fn) {
+    const f = this.app.vault.getAbstractFileByPath(path);
+    if (!f) return;
+    const md = await this.app.vault.read(f), nw = fn(md);
+    if (nw != null && nw !== md) await this.app.vault.modify(f, nw);
+  }
+  async _setQueue(q) { this.settings.webhookQueue = q; await this.saveSettings(); }
+  // gửi; lỗi → hàng đợi + đuôi ⚠️ ở dòng nhật ký. Trả { text, retry } cho thông báo.
+  async deliver(payload, log, qid) {
+    const profId = this.prof().id, path = this.taskFile.path;
+    const r = await this.postHook(payload, profId);
+    if (r.skipped) return { text: '' };
+    if (r.ok) return { text: ' · đã báo MausBot' };
+    await this._setQueue([...(this.settings.webhookQueue || []), { id: qid, payload, profId, log, path }]);
+    if (log) await this._editPath(path, md => markUnsentMd(md, log, true));
+    return { text: ' · CHƯA báo được MausBot (' + r.err + ')', retry: true };
+  }
+  async resendQueue(quiet) {
+    const q = this.settings.webhookQueue || [];
+    if (!q.length) { if (!quiet) new obsidian.Notice('Không có bản tin nào chờ gửi.'); return; }
+    const left = []; let sent = 0, lastErr = '';
+    for (const e of q) {
+      const r = await this.postHook(e.payload, e.profId);
+      if (r.ok) { sent++; if (e.log) await this._editPath(e.path, md => markUnsentMd(md, e.log, false)); }
+      else { left.push(e); lastErr = r.err || 'chưa đặt Webhook URL'; }
+    }
+    await this._setQueue(left);
+    if (!quiet || sent) new obsidian.Notice(left.length ? 'Gửi lại: được ' + sent + ', còn ' + left.length + ' chưa báo (' + lastErr + ')' : 'Đã báo MausBot (' + sent + ' bản tin)');
+  }
+  toast(text, label, fn) {
+    const n = new obsidian.Notice(createFragment(f => { f.createSpan({ text: text + ' ' }); f.createEl('button', { text: label }).addEventListener('click', () => { n.hide(); fn(); }); }), 10000);
+  }
+  async decide(t, kind) {
+    if (!this.taskFile) return;
+    const approve = kind === 'duyet', s = this.settings;
+    const note = await askDecide(this.app, approve
+      ? { title: 'Duyệt', heading: '"' + t.title + '"', placeholder: 'Ghi chú (không bắt buộc), vd: chọn phương án v3', required: false }
+      : { title: 'Yêu cầu sửa', heading: '"' + t.title + '"', placeholder: 'Cần sửa gì? (bắt buộc)', required: true });
+    if (note == null) return;
+    const now = new Date(), who = s.approverName || 'Nguyên';
+    let r = null;
+    await this.mutate(md => { r = decideMd(md, taskKey(t), kind, { stamp: stampOf(now), who, note, laneApproved: s.laneApproved, laneRevise: s.laneRevise }); return r ? r.md : md; });
+    if (!r) { new obsidian.Notice('Không sửa gì: thẻ đã đổi hoặc không có lane "' + (approve ? s.laneApproved : s.laneRevise) + '".'); return; }
+    const payload = buildPayload(kind, t, { who, note, file: this.taskFile.path, board: this.prof().name, channel: this.hookCfg().channel, now });
+    const qid = 'q' + now.getTime().toString(36);
+    const d = await this.deliver(payload, r.log, qid);
+    this._last = { u: r.undo, at: now.getTime(), qid, board: s.activeId, t, who, note };
+    const text = (approve ? 'Đã duyệt' : 'Đã gửi yêu cầu sửa') + d.text;
+    if (d.retry) this.toast(text, 'Gửi lại', () => this.resendQueue()); else this.toast(text, 'Hoàn tác', () => this.undoLast());
+  }
+  async undoLast() {
+    const l = this._last;
+    if (!l || Date.now() - l.at > 10000) { new obsidian.Notice('Hết 10 giây, không hoàn tác được nữa.'); return; }
+    if (this.settings.activeId !== l.board) { new obsidian.Notice('Hãy mở lại đúng bảng rồi hoàn tác.'); return; }
+    let ok = false;
+    await this.mutate(md => { const nw = undoDecideMd(md, l.u); ok = nw != null; return ok ? nw : md; });
+    if (!ok) { new obsidian.Notice('Không hoàn tác được: thẻ đã bị sửa.'); return; }
+    this._last = null;
+    const q = this.settings.webhookQueue || [];
+    if (q.some(e => e.id === l.qid)) { await this._setQueue(q.filter(e => e.id !== l.qid)); new obsidian.Notice('Đã hoàn tác'); return; } // bot chưa nhận lời duyệt → khỏi báo huỷ
+    const now = new Date();
+    const payload = buildPayload('huy_duyet', l.t, { who: l.who, note: l.note, file: this.taskFile.path, board: this.prof().name, channel: this.hookCfg().channel, now });
+    const d = await this.deliver(payload, null, 'q' + now.getTime().toString(36));
+    if (d.retry) this.toast('Đã hoàn tác' + d.text, 'Gửi lại', () => this.resendQueue()); else new obsidian.Notice('Đã hoàn tác' + d.text);
+  }
+  decideMenu(ev, t) {
+    if (!this.isReview(t)) return;
+    ev.preventDefault();
+    const m = new obsidian.Menu();
+    m.addItem(i => i.setTitle('Duyệt').setIcon('check').onClick(() => this.decide(t, 'duyet')));
+    m.addItem(i => i.setTitle('Yêu cầu sửa').setIcon('undo-2').onClick(() => this.decide(t, 'yeu_cau_sua')));
+    m.showAtMouseEvent(ev);
+  }
 
   async saveSettings() { await this.saveData(this.settings); }
 }
@@ -2495,6 +2802,21 @@ class PieSettingTab extends obsidian.PluginSettingTab {
       .setName(tr('Hiện danh sách bước làm trên thẻ'))
       .setDesc(tr('Bật: thẻ việc hiện đầy đủ các bước (tick được ngay trên thẻ). Tắt: chỉ hiện số đếm dạng 0/3.'))
       .addToggle(t => t.setValue(!!this.plugin.settings.stepsOnCard).onChange(async v => { this.plugin.settings.stepsOnCard = v; await this.plugin.saveSettings(); this.plugin.refreshLiveViews(); }));
+    new obsidian.Setting(containerEl).setName('Duyệt / Yêu cầu sửa · báo bot').setHeading();
+    const P = this.plugin, S = P.settings;
+    const txt = (name, desc, get, set) => new obsidian.Setting(containerEl).setName(name).setDesc(desc).addText(t => t.setValue(get()).onChange(async v => { set(v.trim()); await P.saveSettings(); }));
+    const secret = (name, holder, key) => new obsidian.Setting(containerEl).setName(name)
+      .setDesc(holder[key] ? 'Đang đặt: ' + maskUrl(holder[key]) + ' (chỉ lưu trong data.json, dán URL mới để thay)' : 'Trống = chỉ sửa file, không báo bot.')
+      .addText(t => t.setPlaceholder('Dán URL mới…').onChange(async v => { if (v.trim()) { holder[key] = v.trim(); await P.saveSettings(); } }))
+      .addButton(b => b.setButtonText('Xoá').onClick(async () => { holder[key] = ''; await P.saveSettings(); this.display(); }));
+    secret('Webhook URL', S, 'webhookUrl');
+    txt('Tên người duyệt', 'Ghi vào nhật ký và webhook.', () => S.approverName, v => { S.approverName = v || 'Nguyên'; });
+    txt('Lane chờ duyệt', 'Thẻ trong lane này (hoặc chip Chờ duyệt) có nút Duyệt.', () => S.laneReview, v => { S.laneReview = v || 'Chờ duyệt'; });
+    txt('Lane sau khi duyệt', '', () => S.laneApproved, v => { S.laneApproved = v || 'Hoàn thành'; });
+    txt('Lane khi yêu cầu sửa', '', () => S.laneRevise, v => { S.laneRevise = v || 'Đang làm'; });
+    txt('Kênh mặc định', 'Ví dụ tsvh.', () => S.webhookChannel, v => { S.webhookChannel = v; });
+    secret('Webhook URL riêng cho bảng "' + P.prof().name + '"', P.prof(), 'webhookUrl');
+    txt('Kênh riêng cho bảng "' + P.prof().name + '"', 'Trống = dùng kênh mặc định.', () => P.prof().webhookChannel || '', v => { P.prof().webhookChannel = v; });
     new obsidian.Setting(containerEl).setName(tr('Loại nhiệm vụ'))
       .setDesc(tr('Danh sách loại để chọn nhanh trên task (ghi vào file dạng [type:: …], Dataview đọc được). Dùng chung cho mọi bảng.')).setHeading();
     renderTypeManager(containerEl.createDiv({ cls: 'pt-types-wrap' }), this.plugin);
@@ -2516,3 +2838,4 @@ class PieSettingTab extends obsidian.PluginSettingTab {
 }
 
 module.exports = PieTasksPlugin;
+PieTasksPlugin._t = { parseTasks, taskKey, decideMd, undoDecideMd, markUnsentMd, buildPayload, maskUrl, isReviewTask, stampOf };

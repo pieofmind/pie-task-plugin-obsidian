@@ -566,3 +566,31 @@ body.theme-dark .pb-lane-pop { --pop-bg:#141A24; border-color:rgba(120,170,235,.
 .pie-board-root .pb-fopt-ic { display:inline-flex; flex:0 0 auto; } .pie-board-root .pb-fopt-ic svg { width:15px; height:15px; }
 .pt-types-ed:hover { color:var(--interactive-accent) !important; }
 .pt-types-in { width:100%; }
+/* chọn hàng loạt: icon vuông của thẻ chính là ô tick */
+.pie-board-root .ev-tile { position:relative; }
+.pie-board-root .ev-pick { position:absolute; inset:0; border-radius:inherit; display:grid; place-items:center; background:var(--c); color:#fff; opacity:0; transition:opacity .12s, background .12s; cursor:pointer; }
+.pie-board-root .ev-pick::after { content:''; width:13px; height:13px; border-radius:4px; box-shadow:inset 0 0 0 2px rgba(255,255,255,.92); }
+.pie-board-root .ev-pick svg { display:none; width:15px; height:15px; stroke-width:3; }
+.pie-board-root .ev:hover .ev-pick, .pie-board-root.picking .ev-pick { opacity:1; }
+.pie-board-root .ev.picked .ev-pick { background:var(--blue); }
+.pie-board-root .ev.picked .ev-pick::after { display:none; }
+.pie-board-root .ev.picked .ev-pick svg { display:block; }
+.pie-board-root .ev.picked .ev-tile { box-shadow:0 4px 12px color-mix(in srgb,var(--blue) 40%,transparent); }
+.pie-board-root .ev.picked { border-color:var(--blue); box-shadow:0 0 0 1px var(--blue); }
+.pie-board-root .pb-bulk { position:absolute; left:50%; bottom:20px; transform:translateX(-50%); z-index:58; display:flex; align-items:center; gap:4px; padding:6px 6px 6px 14px; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:0 12px 32px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.08); white-space:nowrap; }
+.pie-board-root .pb-bulk-n { font-family:var(--pie-mono); font-size:12px; font-weight:700; color:var(--text); margin-right:8px; }
+.pie-board-root .pb-bulk-btn { display:inline-flex; align-items:center; gap:6px; height:auto; padding:7px 11px; border-radius:8px; background:transparent; border:0; box-shadow:none; color:var(--text); font-size:13px; cursor:pointer; }
+.pie-board-root .pb-bulk-btn:hover { background:var(--surface-2); }
+.pie-board-root .pb-bulk-btn svg { width:14px; height:14px; color:var(--text-muted); }
+.pie-board-root .pb-bulk-btn.danger, .pie-board-root .pb-bulk-btn.danger svg { color:#E5484D; }
+.pie-board-root .pb-bulk-x { display:inline-flex; height:auto; padding:7px; margin-left:2px; border-radius:8px; background:transparent; border:0; box-shadow:none; color:var(--text-muted); cursor:pointer; border-left:1px solid var(--border); border-radius:0 8px 8px 0; }
+.pie-board-root .pb-bulk-x svg { width:14px; height:14px; }
+.pie-board-root .pb-bulk-menu { position:absolute; z-index:59; max-height:340px; overflow-y:auto; }
+.is-mobile .pie-board-root .pb-bulk { bottom:12px; max-width:calc(100% - 24px); overflow-x:auto; }
+
+/* Duyệt / Yêu cầu sửa */
+.pt-dec { display: inline-flex; gap: 6px; margin-left: 8px; vertical-align: middle; }
+.ev-bottom > .pt-dec { display: flex; margin: 6px 0 0; }
+.pt-dec button { font-size: 11px; line-height: 1; padding: 4px 8px; border-radius: 6px; cursor: pointer; border: 1px solid var(--background-modifier-border); background: transparent; color: var(--text-normal); height: auto; box-shadow: none; }
+.pt-dec .pt-dec-ok { background: #2E8B6B; border-color: #2E8B6B; color: #fff; }
+.pt-dec .pt-dec-no { color: #C85A8E; border-color: #C85A8E; }

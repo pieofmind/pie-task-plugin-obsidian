@@ -2,6 +2,14 @@
 
 Định dạng theo [Keep a Changelog](https://keepachangelog.com/) + [SemVer](https://semver.org/).
 
+## [2.5.0]
+
+### Added
+- **Nút Duyệt / Yêu cầu sửa** trên thẻ đang chờ duyệt (chip `Chờ duyệt`/`Đang đánh giá` hoặc nằm trong lane chờ duyệt) — ở board, danh sách, panel thẻ và menu chuột phải. Duyệt: chip → `Hoàn thành`, `[x]`, thẻ (kèm mọi dòng con) sang lane "Hoàn thành" ở đầu lane, thêm dòng nhật ký `✅ Duyệt …`. Yêu cầu sửa (bắt buộc ghi chú): chip → `Đang làm`, sang lane "Đang làm", dòng `↩️ Yêu cầu sửa …`.
+- **Báo bot qua webhook** (`POST` JSON, 5 giây, `requestUrl`): `task` đọc hiểu được + `channel` + `needs_approval:false` + khối `pie{…}`. Đọc `[cnt:: …]`, `[gate:: …]` nếu có. Webhook/kênh đặt chung hoặc riêng từng bảng; URL chỉ lưu trong `data.json`, hiển thị che.
+- Gửi lỗi: file vẫn sửa, thông báo có nút **Gửi lại**, dòng nhật ký thêm `⚠️ chưa báo bot` (gỡ khi gửi lại được), hàng đợi tự gửi lại khi mở Obsidian. Lệnh "Gửi lại báo bot chưa gửi được".
+- **Hoàn tác** trong 10 giây (nút trong thông báo hoặc lệnh "Hoàn tác duyệt cuối"): trả thẻ về như cũ, gửi `huy_duyet`.
+
 ## [2.4.1]
 
 ### Added
