@@ -2809,14 +2809,19 @@ class PieSettingTab extends obsidian.PluginSettingTab {
       .setDesc(holder[key] ? 'Đang đặt: ' + maskUrl(holder[key]) + ' (chỉ lưu trong data.json, dán URL mới để thay)' : 'Trống = chỉ sửa file, không báo bot.')
       .addText(t => t.setPlaceholder('Dán URL mới…').onChange(async v => { if (v.trim()) { holder[key] = v.trim(); await P.saveSettings(); } }))
       .addButton(b => b.setButtonText('Xoá').onClick(async () => { holder[key] = ''; await P.saveSettings(); this.display(); }));
-    secret('Webhook URL', S, 'webhookUrl');
+    containerEl.createEl('p', { cls: 'setting-item-description', text: 'Một URL chung cho mọi bảng, hoặc đặt URL riêng cho từng bảng ở danh sách dưới. Bảng nào để trống thì dùng URL và kênh chung.' });
+    secret('Webhook URL chung (mọi bảng)', S, 'webhookUrl');
     txt('Tên người duyệt', 'Ghi vào nhật ký và webhook.', () => S.approverName, v => { S.approverName = v || 'Nguyên'; });
     txt('Lane chờ duyệt', 'Thẻ trong lane này (hoặc chip Chờ duyệt) có nút Duyệt.', () => S.laneReview, v => { S.laneReview = v || 'Chờ duyệt'; });
     txt('Lane sau khi duyệt', '', () => S.laneApproved, v => { S.laneApproved = v || 'Hoàn thành'; });
     txt('Lane khi yêu cầu sửa', '', () => S.laneRevise, v => { S.laneRevise = v || 'Đang làm'; });
-    txt('Kênh mặc định', 'Ví dụ tsvh.', () => S.webhookChannel, v => { S.webhookChannel = v; });
-    secret('Webhook URL riêng cho bảng "' + P.prof().name + '"', P.prof(), 'webhookUrl');
-    txt('Kênh riêng cho bảng "' + P.prof().name + '"', 'Trống = dùng kênh mặc định.', () => P.prof().webhookChannel || '', v => { P.prof().webhookChannel = v; });
+    txt('Kênh chung', 'Ví dụ tsvh. Bảng nào không đặt kênh riêng sẽ dùng kênh này.', () => S.webhookChannel, v => { S.webhookChannel = v; });
+    new obsidian.Setting(containerEl).setName('Từng bảng').setDesc('Để trống = dùng chung.').setHeading();
+    S.profiles.forEach(pr => new obsidian.Setting(containerEl).setName(pr.name)
+      .setDesc(pr.webhookUrl ? 'URL riêng: ' + maskUrl(pr.webhookUrl) : 'Dùng URL chung')
+      .addText(t => t.setPlaceholder('Dán URL riêng…').onChange(async v => { if (v.trim()) { pr.webhookUrl = v.trim(); await P.saveSettings(); } }))
+      .addText(t => t.setPlaceholder('Kênh').setValue(pr.webhookChannel || '').onChange(async v => { pr.webhookChannel = v.trim(); await P.saveSettings(); }))
+      .addButton(b => b.setButtonText('Xoá URL').onClick(async () => { pr.webhookUrl = ''; await P.saveSettings(); this.display(); })));
     new obsidian.Setting(containerEl).setName(tr('Loại nhiệm vụ'))
       .setDesc(tr('Danh sách loại để chọn nhanh trên task (ghi vào file dạng [type:: …], Dataview đọc được). Dùng chung cho mọi bảng.')).setHeading();
     renderTypeManager(containerEl.createDiv({ cls: 'pt-types-wrap' }), this.plugin);

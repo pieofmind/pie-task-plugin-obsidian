@@ -60,5 +60,15 @@ const keyT = () => require('../main.js')._t.taskKey(require('../main.js')._t.par
   await p.resendQueue();
   assert.strictEqual(p.settings.webhookQueue.length, 0); assert(!md.includes('chưa báo bot')); assert.strictEqual(got.at(-1).pie.ket_qua, 'duyet');
   srv.close();
+  // URL riêng của bảng thắng URL chung; bảng không đặt thì dùng chung
+  const hits = [];
+  const mk = tag => http.createServer((q, s) => { hits.push(tag); s.end('ok'); });
+  const a = mk('chung'), b = mk('riêng');
+  await Promise.all([a, b].map(x => new Promise(r => x.listen(0, '127.0.0.1', r))));
+  p.settings.webhookUrl = 'http://127.0.0.1:' + a.address().port + '/x';
+  p.settings.profiles.push({ id: 'c', name: 'C', webhookUrl: 'http://127.0.0.1:' + b.address().port + '/y', webhookChannel: '' });
+  await p.postHook({}, 'c'); await p.postHook({}, 'b');
+  assert.deepStrictEqual(hits, ['riêng', 'chung']);
+  a.close(); b.close();
   console.log('webhook tests OK');
 })().catch(e => { console.error(e); process.exit(1); });
