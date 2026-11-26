@@ -12,6 +12,9 @@
 - **Modal Thêm/Sửa bảng chọn nguồn File / Folder**: Folder có ô folder + Chọn…, "Gồm cả folder con", Group by (mặc định `status`); ô file không còn bắt buộc. Folder để trống = gốc vault.
 - **Nguồn folder (chỉ đọc)**: Settings → "Nguồn của bảng" = Folder: mỗi note `.md` trong folder (tuỳ chọn gồm folder con) là 1 thẻ, chia cột theo property frontmatter (mặc định `status`; danh sách → phần tử đầu; thiếu → cột "Chưa xếp"). Tiêu đề = `title` hoặc tên file, hiện `owner`/`due`; bấm thẻ mở note; sửa frontmatter thì thẻ tự nhảy cột. Chưa kéo thả/ghi file.
 
+### Fixed
+- **Webhook URL trong Settings**: dán URL xong có thông báo "Đã lưu Webhook URL: …" và mô tả hiện ngay URL (đã che). Trước đây ô nhập trống sau khi lưu nên trông như mất link.
+
 ## [2.6.0]
 
 ### Added
