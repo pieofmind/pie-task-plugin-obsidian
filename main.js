@@ -655,13 +655,37 @@ function addTaskMd(md, laneNm, opts) {
   lines.splice(at, 0, line);
   return lines.join('\n');
 }
-function moveTaskMd(md, key, targetLaneNm) {
+// Ánh xạ lane → nhãn trạng thái (cấu hình mỗi bảng, dạng "lane = nhãn" mỗi dòng). Nhãn lạ bị bỏ (fail-closed: chỉ chuyển lane).
+function parseLaneStatus(txt) {
+  const out = {};
+  for (const l of String(txt || '').split('\n')) {
+    const i = l.indexOf('=');
+    if (i < 0) continue;
+    const lane = l.slice(0, i).trim(), lab = l.slice(i + 1).trim();
+    if (lane && Object.prototype.hasOwnProperty.call(LABELS, lab)) out[lane] = lab;
+  }
+  return out;
+}
+// Dòng task sang lane có ánh xạ: hoàn thành → [x] + ✅; còn lại → [ ], bỏ ✅, đổi token trạng thái tại chỗ (không thêm trùng).
+function laneStatusRaw(raw, label) {
+  if (LABELS[label] === 'completed') return setStatusRaw(raw, 'completed');
+  let n = 0;
+  let line = raw.replace(STATUS_RE_STRIP, m => (n++ ? '' : m.replace(/`[^`]*`/, '`' + label + '`')));
+  line = line.replace(/- \[[xX]\]/, '- [ ]').replace(/\s*✅\s*\d{4}-\d{2}-\d{2}/, '');
+  return n ? line : line.replace(/\s+$/, '') + ' `' + label + '`';
+}
+function applyLaneStatus(block, map, laneNm) {
+  const label = map && Object.prototype.hasOwnProperty.call(map, laneNm) ? map[laneNm] : null;
+  if (label && Object.prototype.hasOwnProperty.call(LABELS, label)) block[0] = laneStatusRaw(block[0], label);
+}
+function moveTaskMd(md, key, targetLaneNm, laneStatus) {
   const { tasks } = parseTasks(md, '');
   const t = findTask(tasks, key);
   if (!t || t.laneName === targetLaneNm) return md;
   let lines = md.split('\n');
   const b = blockRangeOf(lines, t);
   const block = lines.slice(b.start, b.end + 1);
+  applyLaneStatus(block, laneStatus, targetLaneNm);
   lines.splice(b.start, b.end - b.start + 1);
   const rng = findLane(lines, targetLaneNm);
   if (!rng) return md;
@@ -688,7 +712,7 @@ function bulkMd(md, sigs, op) {
   }
   return md;
 }
-function moveTaskToPosMd(md, key, targetLaneNm, beforeKey) {
+function moveTaskToPosMd(md, key, targetLaneNm, beforeKey, laneStatus) {
   // Di chuyển task tới vị trí cụ thể trong lane (kéo đổi thứ tự). beforeKey=null → cuối lane.
   if (beforeKey === key) return md;
   const { tasks } = parseTasks(md, '');
@@ -698,6 +722,7 @@ function moveTaskToPosMd(md, key, targetLaneNm, beforeKey) {
   const b = blockRangeOf(lines, t);
   const blockLen = b.end - b.start + 1;
   const block = lines.slice(b.start, b.end + 1);
+  if (t.laneName !== targetLaneNm) applyLaneStatus(block, laneStatus, targetLaneNm);
   // vị trí chèn tính trên lines GỐC (trước khi cắt) để index chính xác
   let insertAt;
   const bt = beforeKey ? findTask(tasks, beforeKey) : null;
@@ -2204,6 +2229,7 @@ function makeProfile(o) {
     color: '#2F6DB0',
     taskPath: 'TASKS.md', peoplePath: '', // '' → fallback defaultPeoplePath / DEFAULT_PEOPLE
     viewState: {}, laneStyles: {},
+    laneStatus: {}, // lane → nhãn trạng thái; rỗng = kéo lane không đổi trạng thái
     webhookUrl: '', webhookChannel: '' // rỗng → dùng cài đặt chung
   }, o || {});
 }
@@ -2608,13 +2634,13 @@ class PieTasksPlugin extends obsidian.Plugin {
     return picked.length;
   }
   bulkStatus(keys, k) { return this.bulkApply(keys, (md, key) => editLineMd(md, key, l => setStatusRaw(l, k))); }
-  bulkMove(keys, laneNm) { return this.bulkApply(keys, (md, key) => moveTaskMd(md, key, laneNm)); }
+  bulkMove(keys, laneNm) { const ls = this.prof().laneStatus; return this.bulkApply(keys, (md, key) => moveTaskMd(md, key, laneNm, ls)); }
   async bulkDelete(keys) {
     if (!(await askConfirm(this.app, tr('Xoá ') + keys.length + tr(' việc đã chọn? Không hoàn tác được.')))) return 0;
     return this.bulkApply(keys, (md, key) => deleteTaskMd(md, key));
   }
-  moveTask(key, targetLaneNm) { const t = findTask(this.taskData ? this.taskData.tasks : [], key); return this.mutate(md => moveTaskMd(md, key, targetLaneNm), (t && t.synced) ? 'Đã chuyển. Lưu ý: task 1Office có thể bị sync đưa lại.' : null); }
-  moveTaskToPos(key, targetLaneNm, beforeKey) { const t = findTask(this.taskData ? this.taskData.tasks : [], key); return this.mutate(md => moveTaskToPosMd(md, key, targetLaneNm, beforeKey), (t && t.synced) ? 'Đã sắp xếp. Lưu ý: lane 1Office bị sync ghi đè thứ tự.' : null); }
+  moveTask(key, targetLaneNm) { const t = findTask(this.taskData ? this.taskData.tasks : [], key); return this.mutate(md => moveTaskMd(md, key, targetLaneNm, this.prof().laneStatus), (t && t.synced) ? 'Đã chuyển. Lưu ý: task 1Office có thể bị sync đưa lại.' : null); }
+  moveTaskToPos(key, targetLaneNm, beforeKey) { const t = findTask(this.taskData ? this.taskData.tasks : [], key); return this.mutate(md => moveTaskToPosMd(md, key, targetLaneNm, beforeKey, this.prof().laneStatus), (t && t.synced) ? 'Đã sắp xếp. Lưu ý: lane 1Office bị sync ghi đè thứ tự.' : null); }
   _laneRaw(nm) { return ((this.taskData && this.taskData.lanes) || []).find(l => laneName(l) === nm) || ''; }
   _laneColor(nm) { const ls = this.prof().laneStyles || {}; return (ls[nm] && ls[nm].color) || ''; }
   async _saveLaneStyle(name, color, oldName) { const p = this.prof(); const ls = p.laneStyles || (p.laneStyles = {}); if (oldName && oldName !== name) delete ls[oldName]; if (color) ls[name] = { color }; else delete ls[name]; await this.saveSettings(); }
@@ -2822,6 +2848,10 @@ class PieSettingTab extends obsidian.PluginSettingTab {
       .addText(t => t.setPlaceholder('Dán URL riêng…').onChange(async v => { if (v.trim()) { pr.webhookUrl = v.trim(); await P.saveSettings(); } }))
       .addText(t => t.setPlaceholder('Kênh').setValue(pr.webhookChannel || '').onChange(async v => { pr.webhookChannel = v.trim(); await P.saveSettings(); }))
       .addButton(b => b.setButtonText('Xoá URL').onClick(async () => { pr.webhookUrl = ''; await P.saveSettings(); this.display(); })));
+    new obsidian.Setting(containerEl).setName('Lane → trạng thái (từng bảng)').setDesc('Mỗi dòng "lane = nhãn", vd "Đang làm = Đang làm", "Hoàn thành = Hoàn thành". Kéo thẻ sang lane đó thì đổi trạng thái theo. Lane không ghi thì chỉ chuyển lane.').setHeading();
+    S.profiles.forEach(pr => new obsidian.Setting(containerEl).setName(pr.name)
+      .addTextArea(t => t.setPlaceholder('Đang làm = Đang làm\nHoàn thành = Hoàn thành').setValue(Object.entries(pr.laneStatus || {}).map(([k, v]) => k + ' = ' + v).join('\n'))
+        .onChange(async v => { pr.laneStatus = parseLaneStatus(v); await P.saveSettings(); })));
     new obsidian.Setting(containerEl).setName(tr('Loại nhiệm vụ'))
       .setDesc(tr('Danh sách loại để chọn nhanh trên task (ghi vào file dạng [type:: …], Dataview đọc được). Dùng chung cho mọi bảng.')).setHeading();
     renderTypeManager(containerEl.createDiv({ cls: 'pt-types-wrap' }), this.plugin);
@@ -2843,4 +2873,4 @@ class PieSettingTab extends obsidian.PluginSettingTab {
 }
 
 module.exports = PieTasksPlugin;
-PieTasksPlugin._t = { parseTasks, taskKey, decideMd, undoDecideMd, markUnsentMd, buildPayload, maskUrl, isReviewTask, stampOf };
+PieTasksPlugin._t = { today, moveTaskMd, moveTaskToPosMd, bulkSigs, bulkMd, parseLaneStatus, parseTasks, taskKey, decideMd, undoDecideMd, markUnsentMd, buildPayload, maskUrl, isReviewTask, stampOf };
