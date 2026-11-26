@@ -428,27 +428,32 @@ function setGroupPropMd(text, key, value) {
   const k = String(key || '').trim();
   if (!k) throw new Error('setGroupPropMd: thiếu tên property');
   const v = String(value == null ? '' : value).trim(), del = !v || v === UNSORTED;
-  const nl = (text.match(/\r?\n/) || ['\n'])[0]; // theo kiểu xuống dòng đầu tiên của file
-  const lines = text.split('\n'), cr = l => l.replace(/\r$/, '');
-  const hasFm = lines.length > 1 && cr(lines[0]) === '---';
-  if (!hasFm) return { text: del ? text : '---' + nl + k + ': ' + yamlScalar(v) + nl + '---' + nl + text, complex: false };
+  const bom = text.charCodeAt(0) === 0xFEFF ? '﻿' : '', body = text.slice(bom.length);
+  const nl = (body.match(/\r?\n/) || ['\n'])[0]; // theo kiểu xuống dòng đầu tiên của file
+  const lines = body.split('\n'), cr = l => l.replace(/\r$/, '');
+  const out = ls => ({ text: bom + ls.join('\n'), complex: false });
+  if (!(lines.length > 1 && cr(lines[0]) === '---')) return { text: del ? text : bom + '---' + nl + k + ': ' + yamlScalar(v) + nl + '---' + nl + body, complex: false };
   const end = lines.findIndex((l, i) => i > 0 && /^(---|\.\.\.)\s*$/.test(cr(l)));
   if (end < 0) return { text, complex: true };
-  const re = new RegExp('^' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*:(.*)$');
+  const re = new RegExp('^["\']?' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '["\']?\\s*:(.*)$');
   const i = lines.slice(1, end).findIndex(l => re.test(cr(l))) + 1;
   if (i === 0) {
     if (del) return { text, complex: false };
     lines.splice(end, 0, k + ': ' + yamlScalar(v) + (lines[end].endsWith('\r') ? '\r' : ''));
-    return { text: lines.join('\n'), complex: false };
+    return out(lines);
   }
+  // property không nằm gọn trên 1 dòng (scalar nhiều dòng, block list, | >) → để processFrontMatter
   const rest = cr(lines[i]).match(re)[1];
-  const nextL = i + 1 < end ? cr(lines[i + 1]) : '';
-  if (/^\s*[|>]/.test(rest) || (rest.trim() === '' && /^(\s+|-\s)/.test(nextL)) || (rest.trim() === '' && /^\s*#/.test(rest) && /^(\s+|-\s)/.test(nextL))) return { text, complex: true };
-  if (del) { lines.splice(i, 1); return { text: lines.join('\n'), complex: false }; }
-  const cm = rest.match(/\s+#.*$/); // giữ comment cuối dòng
+  if (/^\s*[|>]/.test(rest) || (i + 1 < end && /^(\s+\S|-(\s|$))/.test(cr(lines[i + 1])))) return { text, complex: true };
+  if (del) { lines.splice(i, 1); return out(lines); }
+  // giữ comment cuối dòng: nếu giá trị cũ có quote thì chỉ tính comment sau quote đã đóng
+  const q = rest.trim()[0], t = rest.replace(/^\s+/, '');
+  let tail = t;
+  if (q === '"' || q === "'") { const m = t.match(q === '"' ? /^"(?:[^"\\]|\\.)*"/ : /^'(?:[^']|'')*'/); tail = m ? t.slice(m[0].length) : ''; }
+  const cm = tail.match(/\s+#.*$/);
   const eol = lines[i].endsWith('\r') ? '\r' : '';
   lines[i] = cr(lines[i]).match(/^[^:]*:\s*/)[0].replace(/\s*$/, ' ') + yamlScalar(v) + (cm ? cm[0] : '') + eol;
-  return { text: lines.join('\n'), complex: false };
+  return out(lines);
 }
 function uniqueNotePath(paths, folder, base) {
   const dir = String(folder || '').replace(/^\/+|\/+$/g, ''), pre = dir ? dir + '/' : '', have = new Set(paths);
@@ -2758,23 +2763,27 @@ class PieTasksPlugin extends obsidian.Plugin {
     const key = (this.prof().groupBy || '').trim() || 'status';
     const shown = new Map(((this.taskData && this.taskData.tasks) || []).map(t => [t.notePath, t]));
     let n = 0;
-    for (const path of paths) {
-      const t = shown.get(path), f = this.app.vault.getAbstractFileByPath(path);
-      if (!t || !f || t.lane === lane) continue; // không hiện / không còn / đã ở cột này → không ghi
-      let complex = false;
-      await this.app.vault.process(f, text => { const r = setGroupPropMd(text, key, lane); complex = r.complex; return r.text; }); // atomic; chỉ đổi đúng dòng property
-      if (complex) await this.app.fileManager.processFrontMatter(f, fm => { applyGroupValue(fm, key, lane); }); // property nhiều dòng: để Obsidian dump
-      n++;
-    }
+    try {
+      for (const path of paths) {
+        const t = shown.get(path), f = this.app.vault.getAbstractFileByPath(path);
+        if (!t || !f || t.lane === lane) continue; // không hiện / không còn / đã ở cột này → không ghi
+        let complex = false;
+        await this.app.vault.process(f, text => { const r = setGroupPropMd(text, key, lane); complex = r.complex; return r.text; }); // atomic; chỉ đổi đúng dòng property
+        if (complex) await this.app.fileManager.processFrontMatter(f, fm => { applyGroupValue(fm, key, lane); }); // property nhiều dòng: để Obsidian dump (có thể mất comment frontmatter)
+        n++;
+      }
+    } catch (e) { new obsidian.Notice(tr('Không ghi được property: ') + (e && e.message || e)); }
     if (n) await this.reload();
     return n;
   }
   async createNote(laneRaw) {
     const p = this.prof(), key = (p.groupBy || '').trim() || 'status';
     const path = uniqueNotePath(this.app.vault.getMarkdownFiles().map(f => f.path), obsidian.normalizePath(p.folderPath || ''), tr('Việc mới'));
-    const f = await this.app.vault.create(path, setGroupPropMd('', key, laneRaw).text);
-    await this.reload();
-    return f;
+    try {
+      const f = await this.app.vault.create(path, setGroupPropMd('', key, laneRaw).text);
+      await this.reload();
+      return f;
+    } catch (e) { new obsidian.Notice(tr('Không tạo được note: ') + (e && e.message || e)); return null; }
   }
   _notePaths(keys) { const ts = (this.taskData && this.taskData.tasks) || []; return keys.map(k => (findTask(ts, k) || {}).notePath).filter(Boolean); }
   addTask(laneRaw) { if (this.isFolderSource()) return this.createNote(laneRaw); const nm = laneName(laneRaw); this._pendingNew = { lane: laneRaw, title: tr('Việc mới') }; return this.mutate(md => addTaskMd(md, nm, { title: tr('Việc mới'), date: today(), s: '09:00', e: '10:00' }), isSyncedLane(laneRaw) ? 'Đã thêm. Lưu ý: lane 1Office sẽ bị sync ghi đè.' : null); }

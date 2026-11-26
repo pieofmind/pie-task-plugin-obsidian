@@ -50,6 +50,19 @@ assert.strictEqual(S('---\nx: 1\n---\nb', 'status', 'a').text, '---\nx: 1\nstatu
 assert.strictEqual(S('# T\nbody', 'status', 'a').text, '---\nstatus: a\n---\n# T\nbody');
 assert.strictEqual(S('', 'status', 'a').text, '---\nstatus: a\n---\n');
 assert.strictEqual(S('# T', 'status', 'Chưa xếp').text, '# T');
+// (1) dòng kế thụt vào / bắt đầu "- " → complex, kể cả khi sau ':' là comment hoặc đã có giá trị
+for (const t of ['---\nstatus: # c\n  - a\n---\n', '---\nstatus:\n- a\n- c\n---\n', '---\nstatus: a\n  tiếp tục\n---\n']) { const c = S(t, 'status', 'b'); assert.strictEqual(c.complex, true, t); assert.strictEqual(c.text, t); }
+// (3) key có quote → thay đúng dòng, không thêm dòng trùng
+assert.strictEqual(S('---\n"status": a\n---\n', 'status', 'b').text, '---\n"status": b\n---\n');
+assert.strictEqual(S("---\n'status': a\n---\n", 'status', 'b').text, "---\n'status': b\n---\n");
+// (4) giá trị quote chứa ' #' → chỉ giữ comment sau quote đóng
+assert.strictEqual(S('---\nstatus: "a #x"   # cmt\n---\n', 'status', 'b').text, '---\nstatus: b   # cmt\n---\n');
+assert.strictEqual(S('---\nstatus: "a #x"\n---\n', 'status', 'b').text, '---\nstatus: b\n---\n');
+assert.strictEqual(S("---\nstatus: 'it''s #x' # c\n---\n", 'status', 'b').text, '---\nstatus: b # c\n---\n');
+assert.strictEqual(S('---\nstatus: a # c\n---\n', 'status', 'b').text, '---\nstatus: b # c\n---\n');
+// (5) BOM đầu file: vẫn nhận frontmatter, giữ BOM
+assert.strictEqual(S('\uFEFF---\nstatus: a\n---\nb', 'status', 'c').text, '\uFEFF---\nstatus: c\n---\nb');
+assert.strictEqual(S('\uFEFF# T', 'status', 'a').text, '\uFEFF---\nstatus: a\n---\n# T');
 // property nhiều dòng (block list / block scalar) hoặc frontmatter không đóng → complex, text không đổi
 for (const t of ['---\nstatus:\n  - a\n  - c\n---\nb', '---\nstatus: |\n  a\n---\nb', '---\nstatus: a\nx: 1\nb']) { const c = S(t, 'status', 'b'); assert.strictEqual(c.complex, true, t); assert.strictEqual(c.text, t); }
 // key chỉ khớp ở cột 0, đúng tên (không khớp status2 / dòng thụt / trong body)
@@ -99,6 +112,13 @@ p.reload = async () => { const g = T.groupNotes(Object.entries(files).map(([path
   // tạo note từ cột: 1 lần create, không modify
   await p.createNote('b'); assert.strictEqual(files['N/Việc mới.md'].text, '---\nstatus: b\n---\n');
   await p.createNote('Chưa xếp'); assert.strictEqual(files['N/Việc mới 2.md'].text, '');
+  // lỗi giữa chừng → Notice, không nuốt / không ném
+  const okProcess = app.vault.process; app.vault.process = async () => { throw new Error('đĩa đầy'); };
+  Notice.last = null; assert.strictEqual(await p.moveNotes(['N/u.md'], 'b'), 0); assert(/đĩa đầy/.test(Notice.last));
+  app.vault.process = okProcess;
+  const okCreate = app.vault.create; app.vault.create = async () => { throw new Error('trùng tên'); };
+  Notice.last = null; assert.strictEqual(await p.createNote('b'), null); assert(/trùng tên/.test(Notice.last));
+  app.vault.create = okCreate;
   // nguồn file: no-op
   p.settings.profiles[0].sourceType = 'file'; const n1 = calls.length; await p.moveNotes(['N/a.md'], 'b'); assert.strictEqual(calls.length, n1);
   console.log('foldermove OK');
