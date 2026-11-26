@@ -421,6 +421,35 @@ function applyGroupValue(fm, key, value) {
   if (!v || v === UNSORTED) delete fm[k]; else fm[k] = v;
   return fm;
 }
+// Ghi property group-by bằng cách thay ĐÚNG dòng `key: value` trong frontmatter (giữ comment, thứ tự, định dạng key khác; không parse/dump YAML).
+// → { text, complex }. complex=true: property nhiều dòng (block list/scalar) hoặc frontmatter không đóng → để caller dùng processFrontMatter.
+function yamlScalar(v) { return /^\p{L}(?:[\p{L}\p{N} _.\/-]*[\p{L}\p{N}_.\/-])?$/u.test(v) && !/^(true|false|yes|no|on|off|null|y|n)$/i.test(v) ? v : JSON.stringify(v); }
+function setGroupPropMd(text, key, value) {
+  const k = String(key || '').trim();
+  if (!k) throw new Error('setGroupPropMd: thiếu tên property');
+  const v = String(value == null ? '' : value).trim(), del = !v || v === UNSORTED;
+  const nl = (text.match(/\r?\n/) || ['\n'])[0]; // theo kiểu xuống dòng đầu tiên của file
+  const lines = text.split('\n'), cr = l => l.replace(/\r$/, '');
+  const hasFm = lines.length > 1 && cr(lines[0]) === '---';
+  if (!hasFm) return { text: del ? text : '---' + nl + k + ': ' + yamlScalar(v) + nl + '---' + nl + text, complex: false };
+  const end = lines.findIndex((l, i) => i > 0 && /^(---|\.\.\.)\s*$/.test(cr(l)));
+  if (end < 0) return { text, complex: true };
+  const re = new RegExp('^' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*:(.*)$');
+  const i = lines.slice(1, end).findIndex(l => re.test(cr(l))) + 1;
+  if (i === 0) {
+    if (del) return { text, complex: false };
+    lines.splice(end, 0, k + ': ' + yamlScalar(v) + (lines[end].endsWith('\r') ? '\r' : ''));
+    return { text: lines.join('\n'), complex: false };
+  }
+  const rest = cr(lines[i]).match(re)[1];
+  const nextL = i + 1 < end ? cr(lines[i + 1]) : '';
+  if (/^\s*[|>]/.test(rest) || (rest.trim() === '' && /^(\s+|-\s)/.test(nextL)) || (rest.trim() === '' && /^\s*#/.test(rest) && /^(\s+|-\s)/.test(nextL))) return { text, complex: true };
+  if (del) { lines.splice(i, 1); return { text: lines.join('\n'), complex: false }; }
+  const cm = rest.match(/\s+#.*$/); // giữ comment cuối dòng
+  const eol = lines[i].endsWith('\r') ? '\r' : '';
+  lines[i] = cr(lines[i]).match(/^[^:]*:\s*/)[0].replace(/\s*$/, ' ') + yamlScalar(v) + (cm ? cm[0] : '') + eol;
+  return { text: lines.join('\n'), complex: false };
+}
 function uniqueNotePath(paths, folder, base) {
   const dir = String(folder || '').replace(/^\/+|\/+$/g, ''), pre = dir ? dir + '/' : '', have = new Set(paths);
   let n = 1, p = pre + base + '.md';
@@ -2721,7 +2750,7 @@ class PieTasksPlugin extends obsidian.Plugin {
   removeProject(t) { return this.mutate(md => editLineMd(md, taskKey(t), l => setProjectRaw(l, null))); }
   pickProject(t) { const src = this.taskFile ? this.taskFile.path : ''; new ProjectSuggestModal(this.app, f => this.setProject(t, this.app.metadataCache.fileToLinktext(f, src, true))).open(); }
   isFolderSource() { return this.prof().sourceType === 'folder'; }
-  // Nguồn folder: ghi property group-by CHỈ qua processFrontMatter (body note không bị đụng). Chỉ ghi note đang hiện trên bảng.
+  // Nguồn folder: ghi property group-by bằng vault.process sửa đúng 1 dòng (processFrontMatter chỉ cho property nhiều dòng); body note không bị đụng. Chỉ ghi note đang hiện trên bảng.
   async moveNotes(paths, laneNm) {
     if (!this.isFolderSource()) return 0;
     const lane = ((this.taskData && this.taskData.lanes) || []).find(l => l === laneNm || laneName(l) === laneNm);
@@ -2732,7 +2761,9 @@ class PieTasksPlugin extends obsidian.Plugin {
     for (const path of paths) {
       const t = shown.get(path), f = this.app.vault.getAbstractFileByPath(path);
       if (!t || !f || t.lane === lane) continue; // không hiện / không còn / đã ở cột này → không ghi
-      await this.app.fileManager.processFrontMatter(f, fm => { applyGroupValue(fm, key, lane); });
+      let complex = false;
+      await this.app.vault.process(f, text => { const r = setGroupPropMd(text, key, lane); complex = r.complex; return r.text; }); // atomic; chỉ đổi đúng dòng property
+      if (complex) await this.app.fileManager.processFrontMatter(f, fm => { applyGroupValue(fm, key, lane); }); // property nhiều dòng: để Obsidian dump
       n++;
     }
     if (n) await this.reload();
@@ -2741,8 +2772,7 @@ class PieTasksPlugin extends obsidian.Plugin {
   async createNote(laneRaw) {
     const p = this.prof(), key = (p.groupBy || '').trim() || 'status';
     const path = uniqueNotePath(this.app.vault.getMarkdownFiles().map(f => f.path), obsidian.normalizePath(p.folderPath || ''), tr('Việc mới'));
-    const f = await this.app.vault.create(path, '');
-    if (laneRaw && laneRaw !== UNSORTED) await this.app.fileManager.processFrontMatter(f, fm => { applyGroupValue(fm, key, laneRaw); });
+    const f = await this.app.vault.create(path, setGroupPropMd('', key, laneRaw).text);
     await this.reload();
     return f;
   }
@@ -3009,4 +3039,4 @@ class PieSettingTab extends obsidian.PluginSettingTab {
 }
 
 module.exports = PieTasksPlugin;
-PieTasksPlugin._t = { today, moveTaskMd, moveTaskToPosMd, bulkSigs, bulkMd, parseLaneStatus, applyGroupValue, uniqueNotePath, validateProfileSource, makeProfile, parseTasks, groupNotes, notesInFolder, taskKey, decideMd, undoDecideMd, markUnsentMd, buildPayload, maskUrl, isReviewTask, stampOf };
+PieTasksPlugin._t = { today, moveTaskMd, moveTaskToPosMd, bulkSigs, bulkMd, parseLaneStatus, applyGroupValue, setGroupPropMd, uniqueNotePath, validateProfileSource, makeProfile, parseTasks, groupNotes, notesInFolder, taskKey, decideMd, undoDecideMd, markUnsentMd, buildPayload, maskUrl, isReviewTask, stampOf };

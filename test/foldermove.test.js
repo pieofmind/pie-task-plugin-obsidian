@@ -25,52 +25,81 @@ assert.strictEqual(T.uniqueNotePath(['N/Việc mới.md'], 'N', 'Việc mới'),
 assert.strictEqual(T.uniqueNotePath([], '', 'Việc mới'), 'Việc mới.md');
 assert.strictEqual(T.uniqueNotePath(['N/Việc mới.md', 'N/Việc mới 2.md'], 'N/', 'Việc mới'), 'N/Việc mới 3.md');
 
-// --- plugin với app giả: ghi CHỈ qua processFrontMatter, body không đổi ---
-const BODY = '# Tiêu đề\r\n\r\nNội dung  có khoảng trắng cuối   \n- [ ] không phải task\n\n---\nnot frontmatter\n';
+// --- ghi text: chỉ sửa đúng dòng property (giữ comment/thứ tự/định dạng) ---
+const S = T.setGroupPropMd;
+const BODY = '# Tiêu đề\r\n\r\nNội dung  có khoảng trắng cuối   \n- [ ] không phải task\n\n---\nnot: frontmatter\n';
+const FM = ['---', '# ghi chú của Nguyên', 'n: 007', 'status: a   # trạng thái', 'tags:', '  - t1', '  - t2', 'when: 2026-11-26', 'title: "Giữ nguyên"', '---'].join('\n') + '\n';
+const lineDiff = (a, b) => { const x = a.split('\n'), y = b.split('\n'); assert.strictEqual(x.length, y.length, 'số dòng'); return x.map((l, i) => l === y[i] ? null : [l, y[i]]).filter(Boolean); };
+let r = S(FM + BODY, 'status', 'b');
+assert.deepStrictEqual(lineDiff(FM + BODY, r.text), [['status: a   # trạng thái', 'status: b   # trạng thái']]);
+assert(r.text.endsWith(BODY)); assert(!r.complex);
+assert(r.text.includes('n: 007') && r.text.includes('# ghi chú của Nguyên'));
+// idempotent + cùng giá trị → text y hệt
+assert.strictEqual(S(r.text, 'status', 'b').text, r.text);
+// lane cần quote → "…"; số → quote; list 1 dòng → thay; CRLF giữ
+assert.strictEqual(S('---\nstatus: a\n---\n', 'status', 'Đang làm 🔥').text, '---\nstatus: "Đang làm 🔥"\n---\n');
+assert.strictEqual(S('---\nstatus: a\n---\n', 'status', '2026').text, '---\nstatus: "2026"\n---\n');
+assert.strictEqual(S('---\nstatus: a\n---\n', 'status', 'Đang làm').text, '---\nstatus: Đang làm\n---\n');
+assert.strictEqual(S('---\nstatus: [a, c]\n---\n', 'status', 'b').text, '---\nstatus: b\n---\n');
+assert.strictEqual(S('---\r\nstatus: a\r\nx: 1\r\n---\r\nbody', 'status', 'b').text, '---\r\nstatus: b\r\nx: 1\r\n---\r\nbody');
+// xoá key (Chưa xếp): bỏ đúng 1 dòng; key không có → y nguyên
+assert.strictEqual(S(FM + BODY, 'n', 'Chưa xếp').text, (FM + BODY).replace('n: 007\n', ''));
+assert.strictEqual(S('---\nx: 1\n---\nb', 'status', 'Chưa xếp').text, '---\nx: 1\n---\nb');
+// key chưa có → thêm cuối frontmatter; không có frontmatter → thêm khối; rỗng
+assert.strictEqual(S('---\nx: 1\n---\nb', 'status', 'a').text, '---\nx: 1\nstatus: a\n---\nb');
+assert.strictEqual(S('# T\nbody', 'status', 'a').text, '---\nstatus: a\n---\n# T\nbody');
+assert.strictEqual(S('', 'status', 'a').text, '---\nstatus: a\n---\n');
+assert.strictEqual(S('# T', 'status', 'Chưa xếp').text, '# T');
+// property nhiều dòng (block list / block scalar) hoặc frontmatter không đóng → complex, text không đổi
+for (const t of ['---\nstatus:\n  - a\n  - c\n---\nb', '---\nstatus: |\n  a\n---\nb', '---\nstatus: a\nx: 1\nb']) { const c = S(t, 'status', 'b'); assert.strictEqual(c.complex, true, t); assert.strictEqual(c.text, t); }
+// key chỉ khớp ở cột 0, đúng tên (không khớp status2 / dòng thụt / trong body)
+assert.strictEqual(S('---\nstatus2: z\n  status: q\n---\nstatus: body', 'status', 'b').text, '---\nstatus2: z\n  status: q\nstatus: b\n---\nstatus: body');
+
+// --- plugin với app giả: ghi qua vault.process (dòng đơn) / processFrontMatter (nhiều dòng) ---
 const files = {
-  'N/a.md': { fm: { status: 'a', tags: ['t'] }, body: BODY },
-  'N/c.md': { fm: { status: ['a', 'c'] }, body: BODY },
-  'N/u.md': { fm: {}, body: BODY }
+  'N/a.md': { text: FM + BODY }, 'N/c.md': { text: '---\nstatus: [a, c]\ntags: [t]\n---\n' + BODY },
+  'N/u.md': { text: BODY }, 'N/m.md': { text: '---\nstatus:\n  - a\n  - c\n---\n' + BODY }
 };
 const calls = [];
 const forbid = n => () => { throw new Error('cấm gọi ' + n); };
 const app = {
-  vault: { modify: forbid('modify'), process: forbid('process'), append: forbid('append'), adapter: { write: forbid('adapter.write') },
+  vault: { modify: forbid('modify'), append: forbid('append'), adapter: { write: forbid('adapter.write') },
+    process: async (f, fn) => { calls.push('process ' + f.path); const o = files[f.path].text; const n = fn(o); if (n !== o) files[f.path].text = n; },
     getAbstractFileByPath: p => files[p] ? { path: p } : null,
     getMarkdownFiles: () => Object.keys(files).map(p => ({ path: p })),
-    create: async (p, data) => { assert.strictEqual(data, ''); files[p] = { fm: {}, body: '' }; calls.push('create ' + p); return { path: p }; } },
-  fileManager: { processFrontMatter: async (f, fn) => { calls.push('pfm ' + f.path); fn(files[f.path].fm); } }
+    create: async (p, data) => { files[p] = { text: data }; calls.push('create ' + p); return { path: p }; } },
+  fileManager: { processFrontMatter: async (f, fn) => { calls.push('pfm ' + f.path); fn({}); } }
 };
 const p = Object.create(Plugin.prototype);
 p.app = app; p.settings = { activeId: 'x', profiles: [{ id: 'x', sourceType: 'folder', folderPath: 'N', groupBy: 'status', folderRecursive: false }] };
 p.prof = () => p.settings.profiles[0];
-p.taskData = { lanes: ['a', 'b', 'Chưa xếp'], tasks: [{ notePath: 'N/a.md', lane: 'a' }, { notePath: 'N/c.md', lane: 'a' }, { notePath: 'N/u.md', lane: 'Chưa xếp' }] };
 p.taskFile = null;
-// reload giả = dựng lại bảng từ frontmatter hiện tại như loadFolderTasks
-p.reload = async () => { const g = T.groupNotes(Object.entries(files).map(([path, v]) => ({ path, frontmatter: v.fm })), 'status'); p.taskData = { lanes: [...new Set(['a', 'b', ...g.lanes, 'Chưa xếp'])], tasks: g.tasks }; };
-p.taskData.lanes = ['a', 'b', 'Chưa xếp'];
-const key = n => T.taskKey(Object.assign({ id: null, title: n, line: 0 }, { lane: 'a' }));
+// reload giả = dựng lại bảng từ text hiện tại, đọc status bằng regex dòng đơn
+const fmOf = t => { const m = t.match(/^---\n([\s\S]*?)\n---\n/); const s = m && m[1].match(/^status:\s*(?:\[([^\],]*).*\]|(.*?))\s*(?:#.*)?$/m); return s ? { status: (s[1] || s[2] || '').replace(/^"|"$/g, '').trim() || undefined } : {}; };
+p.reload = async () => { const g = T.groupNotes(Object.entries(files).map(([path, v]) => ({ path, frontmatter: fmOf(v.text) })), 'status'); p.taskData = { lanes: [...new Set(['a', 'b', ...g.lanes, 'Chưa xếp'])], tasks: g.tasks }; };
 
 (async () => {
-  const before = JSON.stringify(Object.fromEntries(Object.entries(files).map(([k, v]) => [k, v.body])));
+  await p.reload();
+  const bodyOf = k => files[k].text.slice(files[k].text.lastIndexOf('# Tiêu đề'));
+  const fixture = files['N/a.md'].text;
   await p.moveNotes(['N/a.md', 'N/c.md'], 'b');
-  assert.deepStrictEqual(files['N/a.md'].fm, { status: 'b', tags: ['t'] });
-  assert.deepStrictEqual(files['N/c.md'].fm, { status: 'b' });
-  await p.moveNotes(['N/a.md'], 'b'); // kéo lần 2 cùng cột: không ghi nữa
-  assert.deepStrictEqual(files['N/a.md'].fm, { status: 'b', tags: ['t'] });
-  assert.strictEqual(calls.filter(c => c === 'pfm N/a.md').length, 1, 'cùng cột → không ghi lại file');
-  await p.moveNotes(['N/a.md'], 'Chưa xếp'); assert.deepStrictEqual(files['N/a.md'].fm, { tags: ['t'] });
-  await p.moveNotes(['N/u.md'], 'a'); assert.deepStrictEqual(files['N/u.md'].fm, { status: 'a' });
-  // body byte-for-byte
-  assert.strictEqual(JSON.stringify(Object.fromEntries(Object.entries(files).map(([k, v]) => [k, v.body]))), before);
-  // đường dẫn lạ / ngoài folder nguồn: không ghi
-  const n0 = calls.length;
-  await p.moveNotes(['N/none.md', '../evil.md', 'Other/a.md'], 'b'); assert.strictEqual(calls.length, n0);
-  // tạo note từ cột
-  await p.createNote('b');
-  assert(calls.includes('create N/Việc mới.md')); assert.deepStrictEqual(files['N/Việc mới.md'].fm, { status: 'b' });
-  await p.createNote('Chưa xếp'); assert.deepStrictEqual(files['N/Việc mới 2.md'].fm, {});
-  // nguồn file: moveNotes không làm gì
+  assert.deepStrictEqual(lineDiff(fixture, files['N/a.md'].text), [['status: a   # trạng thái', 'status: b   # trạng thái']]);
+  assert.strictEqual(files['N/c.md'].text, '---\nstatus: b\ntags: [t]\n---\n' + BODY);
+  const na = calls.filter(c => c === 'process N/a.md').length;
+  await p.moveNotes(['N/a.md'], 'b'); // cùng cột: không ghi lại
+  assert.strictEqual(calls.filter(c => c === 'process N/a.md').length, na);
+  await p.moveNotes(['N/a.md'], 'Chưa xếp'); assert(!/^status:/m.test(files['N/a.md'].text.split('\n---\n')[0]) && files['N/a.md'].text.includes('n: 007') && files['N/a.md'].text.includes('# ghi chú của Nguyên'));
+  await p.moveNotes(['N/u.md'], 'a'); assert.strictEqual(files['N/u.md'].text, '---\r\nstatus: a\r\n---\r\n' + BODY); // file CRLF → khối mới CRLF
+  for (const k of ['N/a.md', 'N/c.md', 'N/u.md']) assert(files[k].text.endsWith(BODY), 'body y hệt ' + k);
+  // property nhiều dòng → processFrontMatter, text không bị process đổi
+  const mt = files['N/m.md'].text; await p.moveNotes(['N/m.md'], 'b');
+  assert(calls.includes('pfm N/m.md')); assert.strictEqual(files['N/m.md'].text, mt);
+  // đường dẫn lạ / ngoài bảng: không ghi
+  const n0 = calls.length; await p.moveNotes(['N/none.md', '../evil.md', 'Other/a.md'], 'b'); assert.strictEqual(calls.length, n0);
+  // tạo note từ cột: 1 lần create, không modify
+  await p.createNote('b'); assert.strictEqual(files['N/Việc mới.md'].text, '---\nstatus: b\n---\n');
+  await p.createNote('Chưa xếp'); assert.strictEqual(files['N/Việc mới 2.md'].text, '');
+  // nguồn file: no-op
   p.settings.profiles[0].sourceType = 'file'; const n1 = calls.length; await p.moveNotes(['N/a.md'], 'b'); assert.strictEqual(calls.length, n1);
   console.log('foldermove OK');
 })().catch(e => { console.error(e); process.exit(1); });
