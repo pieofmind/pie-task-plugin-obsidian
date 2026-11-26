@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hướng Dẫn Sử Dụng Pie Tasks - Obsidian Plugin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --surface-color: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --accent: #10b981;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(16, 185, 129, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 4rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.2rem;
+        }
+
+        .card {
+            background: var(--surface-color);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: fadeInUp 0.8s ease-out;
+            animation-fill-mode: both;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .card:nth-child(2) { animation-delay: 0.1s; }
+        .card:nth-child(3) { animation-delay: 0.2s; }
+        .card:nth-child(4) { animation-delay: 0.3s; }
+
+        h2 {
+            font-size: 1.5rem;
+            color: var(--text-main);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.75rem;
+        }
+
+        h3 {
+            font-size: 1.2rem;
+            color: #60a5fa;
+            margin: 1.5rem 0 0.75rem 0;
+        }
+
+        ul, ol {
+            padding-left: 1.5rem;
+            color: var(--text-muted);
+        }
+
+        li {
+            margin-bottom: 0.75rem;
+        }
+
+        strong {
+            color: var(--text-main);
+        }
+
+        code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #93c5fd;
+        }
+
+        .code-block {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            margin: 1rem 0;
+            color: #e2e8f0;
+            font-family: monospace;
+            line-height: 1.5;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .highlight {
+            color: var(--accent);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Pie Tasks</h1>
+            <p>Quản lý công việc chuyên nghiệp trực tiếp trên file Markdown của Obsidian</p>
+        </header>
+
+        <div class="card">
+            <h2>🚀 1. Giới thiệu</h2>
+            <p><strong>Pie Tasks</strong> là một plugin mạnh mẽ cho Obsidian, giúp bạn quản lý công việc dưới dạng <strong>Bảng Kanban</strong>, <strong>Danh sách</strong>, <strong>Lịch</strong> hoặc <strong>Dashboard</strong>. Điểm đặc biệt là mọi dữ liệu đều được lưu dưới dạng file Markdown thuần tuý, không bị khóa vào bất kỳ định dạng đóng nào.</p>
+        </div>
+
+        <div class="card">
+            <h2>⚙️ 2. Hướng dẫn cài đặt</h2>
+            <ol>
+                <li><strong>Cài đặt:</strong> Tải thủ công từ Github hoặc qua Community Plugins (tìm "Pie Tasks").</li>
+                <li><strong>Kích hoạt:</strong> Vào <code>Settings → Community plugins</code> và bật Pie Tasks lên.</li>
+                <li><strong>Thiết lập nhanh:</strong> Vào <code>Settings → Pie Tasks → Quick setup</code>. Plugin sẽ tự động tạo các file mẫu cần thiết (như <code>TASKS.md</code>, <code>People.md</code>) mà không ảnh hưởng đến dữ liệu hiện tại của bạn.</li>
+                <li><strong>Mở bảng điều khiển:</strong> Bấm vào biểu tượng dấu <span class="highlight">✓</span> trên thanh công cụ bên trái (ribbon) hoặc dùng lệnh <code>Pie Tasks: open live board</code>.</li>
+            </ol>
+        </div>
+
+        <div class="card">
+            <h2>📝 3. Cấu trúc file TASKS.md</h2>
+            <p>Pie Tasks đọc công việc trực tiếp từ file Markdown. Dưới đây là cách bạn định dạng nội dung:</p>
+            
+            <h3>Tạo Cột (Lane)</h3>
+            <p>Sử dụng tiêu đề cấp 2 (<code>##</code>) để tạo các cột trong bảng Kanban. Bạn có thể dùng Emoji ở đầu để làm biểu tượng cho cột.</p>
+            <div class="code-block">## 📌 Đang làm
+## ✅ Hoàn thành</div>
+
+            <h3>Tạo Công Việc (Task)</h3>
+            <p>Sử dụng cú pháp checkbox mặc định của Markdown. Thêm các <strong>token</strong> ở cuối dòng để khai báo các thuộc tính của công việc.</p>
+            <div class="code-block">- [ ] **Tên công việc** 👤 An 📅 2026-07-05 ⏰ 14:00–16:00 Đang làm 🔴</div>
+            
+            <p style="margin-top: 1rem;"><strong>Danh sách các token hỗ trợ:</strong></p>
+            <div style="margin-top: 1rem;">
+                <span class="badge">👤 Tên</span> Người phụ trách (Ví dụ: 👤 An, Bình)<br>
+                <span class="badge">📅 YYYY-MM-DD</span> Ngày/Hạn chót<br>
+                <span class="badge">⏰ HH:MM–HH:MM</span> Khung giờ thực hiện<br>
+                <span class="badge">Trạng thái</span> Chọn 1 trong: Đang chờ, Đang làm, Chờ duyệt, Hoàn thành, Tạm dừng, Hủy, Lỗi...<br>
+                <span class="badge">60%</span> Mức độ hoàn thành<br>
+                <span class="badge">next: ...</span> Ghi chú việc kế tiếp (1 dòng)<br>
+                <span class="badge">output: [[note]]</span> Liên kết tới ghi chú hoặc tài liệu liên quan<br>
+                <span class="badge">🔴</span> Đánh dấu ưu tiên cao
+            </div>
+            
+            <p style="margin-top: 1rem;"><em>Lưu ý: Để đánh dấu công việc đã xong, đổi <code>- [ ]</code> thành <code>- [x]</code> và có thể thêm <code>✅ YYYY-MM-DD</code> để lưu ngày hoàn thành.</em></p>
+        </div>
+
+        <div class="card">
+            <h2>👥 4. Quản lý nhân sự (People.md)</h2>
+            <p>Bạn có thể tạo một file <code>People.md</code> (hoặc tuỳ chọn trong Settings) để quản lý danh sách những người phụ trách công việc. Việc này giúp tự động gợi ý tên khi thêm người (👤).</p>
+            <p>File này dùng định dạng bảng Markdown:</p>
+            <div class="code-block">| Tên | ID | Username | Phòng ban |
+|------|-------|----------|-----------|
+| An | 01 | an_dev | Dev |
+| Bình | 02 | binh_mkt | Marketing |</div>
+            <p><em>Chỉ cột <strong>Tên</strong> là bắt buộc. ID dùng để đồng bộ với các hệ thống ngoài (nếu có).</em></p>
+        </div>
+
+        <div class="card">
+            <h2>💡 5. Tính năng nổi bật & Mẹo</h2>
+            <ul>
+                <li><strong>Đồng bộ hai chiều:</strong> Khi bạn kéo thả thẻ trong bảng Kanban, file Markdown sẽ tự động cập nhật lại tiêu đề (Lane) và các thuộc tính tương ứng.</li>
+                <li><strong>Nhiều Boards:</strong> Bạn có thể tạo nhiều board khác nhau (Cá nhân, Công việc, Dự án X) trong Settings, mỗi board trỏ tới một file Markdown riêng biệt.</li>
+                <li><strong>Bốn góc nhìn (Views):</strong> Dễ dàng chuyển đổi qua lại giữa dạng Kanban, Danh sách (List), Lịch tháng (Calendar) và Thống kê (Dashboard).</li>
+                <li><strong>Tương thích Kanban Plugin:</strong> Thêm <code>kanban-plugin: board</code> vào frontmatter nếu bạn muốn file cũng chạy được với các plugin Kanban khác.</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
