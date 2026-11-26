@@ -381,6 +381,37 @@ function parseTasks(md, path) {
   }
   return { lanes, tasks, path };
 }
+// ---------- nguồn folder: note = thẻ, group theo property frontmatter (chỉ đọc) ----------
+const UNSORTED = 'Chưa xếp';
+const fmScalar = v => (Array.isArray(v) ? v[0] : v);
+function fmValue(v) { v = fmScalar(v); return (v == null || typeof v === 'object') ? '' : String(v).trim(); }
+function notesInFolder(files, folder, recursive) {
+  const base = String(folder || '').replace(/^\/+|\/+$/g, '');
+  const pre = base ? base + '/' : '';
+  return files.filter(f => /\.md$/i.test(f.path) && f.path.startsWith(pre) && (recursive || f.path.indexOf('/', pre.length) < 0))
+    .sort((a, b) => (a.path < b.path ? -1 : 1));
+}
+// notes: [{path, frontmatter}] → { lanes, tasks } cùng hình với parseTasks để view dùng lại; cột theo thứ tự xuất hiện, "Chưa xếp" cuối.
+function groupNotes(notes, groupBy) {
+  const prop = (groupBy || '').trim() || 'status';
+  const lanes = [], tasks = [];
+  notes.forEach((n, i) => {
+    const fm = n.frontmatter || {};
+    const lane = fmValue(fm[prop]) || UNSORTED;
+    if (lane !== UNSORTED && !lanes.includes(lane)) lanes.push(lane);
+    const owner = fmValue(fm.owner) || null;
+    const due = fmValue(fm.due).slice(0, 10);
+    const base = n.path.split('/').pop().replace(/\.md$/i, '');
+    tasks.push({
+      lane, laneName: laneName(lane) || lane, title: fmValue(fm.title) || base, done: false,
+      owner, owners: owner ? [{ name: owner, kind: 'human' }] : [], date: /^\d{4}-\d{2}-\d{2}$/.test(due) ? due : null, startDate: null, s: null, e: null,
+      status: 'open', over: false, pri: false, prio: 'normal', id: null, pct: null, next: null, note: null, eisen: null, outputs: [], project: null, types: [],
+      check: [], raw: '', line: i, blockStart: i, blockEnd: i, laneIcon: laneIcon(lane), synced: false, notePath: n.path, readOnly: true
+    });
+  });
+  if (tasks.some(t => t.lane === UNSORTED)) lanes.push(UNSORTED);
+  return { lanes, tasks };
+}
 function taskKey(t) { return t.id ? 'id:' + t.id : (t.lane + '::' + t.title + '::' + t.line); }
 function findTask(tasks, key) { return tasks.find(t => taskKey(t) === key) || null; }
 
@@ -1504,6 +1535,7 @@ class PieLiveView extends obsidian.ItemView {
 
   // ---------- DRAWER ----------
   openCard(t) {
+    if (t.notePath) { this.app.workspace.openLinkText(t.notePath, '', false); return; }
     this.selId = taskKey(t);
     const st = this.cardState(t), S = STATES[st];
     const dw = this.drawerEl; dw.empty();
@@ -2229,6 +2261,7 @@ function makeProfile(o) {
     color: '#2F6DB0',
     taskPath: 'TASKS.md', peoplePath: '', // '' → fallback defaultPeoplePath / DEFAULT_PEOPLE
     viewState: {}, laneStyles: {},
+    sourceType: 'file', folderPath: '', folderRecursive: false, groupBy: 'status', // nguồn: 'file' (TASKS.md) | 'folder' (note = thẻ, chỉ đọc)
     laneStatus: {}, // lane → nhãn trạng thái; rỗng = kéo lane không đổi trạng thái
     webhookUrl: '', webhookChannel: '' // rỗng → dùng cài đặt chung
   }, o || {});
@@ -2282,6 +2315,10 @@ class PieTasksPlugin extends obsidian.Plugin {
     this.addCommand({ id: 'resend-hook', name: 'Gửi lại báo bot chưa gửi được', callback: () => this.resendQueue() });
     this.addSettingTab(new PieSettingTab(this.app, this));
     this.registerEvent(this.app.vault.on('modify', f => { if (this.taskFile && f && f.path === this.taskFile.path) this.reload(); }));
+    // nguồn folder: frontmatter đổi / note thêm-xoá-đổi tên → dựng lại (gộp 150ms)
+    const folderChanged = () => { if (this.prof().sourceType !== 'folder') return; clearTimeout(this._folderT); this._folderT = window.setTimeout(() => this.reload(), 150); };
+    this.registerEvent(this.app.metadataCache.on('changed', folderChanged));
+    ['create', 'delete', 'rename'].forEach(ev => this.registerEvent(this.app.vault.on(ev, folderChanged)));
     this.registerEvent(this.app.workspace.on('css-change', () => this.refreshLiveViews()));
     // Vault index có thể chưa sẵn sàng lúc onload (nhất là mobile / khi view được khôi phục) → load khi layout ready
     this.app.workspace.onLayoutReady(async () => { await this.reload(); this.resendQueue(true); }); // tự gửi lại bản tin tồn một lần
@@ -2407,7 +2444,14 @@ class PieTasksPlugin extends obsidian.Plugin {
     const style = document.createElement('style'); style.id = 'pie-tasks-fonts'; style.textContent = rules; document.head.appendChild(style); this.register(() => style.remove());
   }
 
+  async loadFolderTasks() {
+    const p = this.prof(), mc = this.app.metadataCache;
+    const files = notesInFolder(this.app.vault.getMarkdownFiles(), obsidian.normalizePath(p.folderPath || '/'), !!p.folderRecursive);
+    const g = groupNotes(files.map(f => ({ path: f.path, frontmatter: (mc.getFileCache(f) || {}).frontmatter })), p.groupBy);
+    this.taskFile = null; this.taskData = { lanes: g.lanes, tasks: g.tasks, path: p.folderPath };
+  }
   async loadTasks() {
+    if (this.prof().sourceType === 'folder') return this.loadFolderTasks();
     const path = obsidian.normalizePath(this.prof().taskPath || 'TASKS.md');
     const f = this.app.vault.getAbstractFileByPath(path);
     if (!(f instanceof obsidian.TFile)) { this.taskData = null; this.taskFile = null; return; }
@@ -2806,6 +2850,17 @@ class PieSettingTab extends obsidian.PluginSettingTab {
     new obsidian.Setting(containerEl).setName(tr('Bảng công việc (profile)'))
       .setDesc(tr('Mỗi bảng = 1 file .md riêng (quản lý theo project). Đổi bảng bằng chip góc trên-trái board.'))
       .addButton(b => b.setButtonText(tr('Quản lý bảng')).setCta().onClick(() => new ProfileManagerModal(this.app, this.plugin).open()));
+    const PR = this.plugin.prof(), saveReload = async () => { await this.plugin.saveSettings(); await this.plugin.reload(); };
+    new obsidian.Setting(containerEl).setName('Nguồn của bảng').setDesc('File: bảng TASKS.md như cũ. Folder: mỗi note .md là 1 thẻ, chia cột theo property frontmatter (chỉ đọc).')
+      .addDropdown(d => d.addOption('file', 'File').addOption('folder', 'Folder').setValue(PR.sourceType || 'file').onChange(async v => { PR.sourceType = v; await saveReload(); this.display(); }));
+    if (PR.sourceType === 'folder') {
+      new obsidian.Setting(containerEl).setName('Folder nguồn').setDesc('Đường dẫn folder trong vault; để trống = gốc vault.')
+        .addText(t => t.setPlaceholder('vd: Projects/Notes').setValue(PR.folderPath || '').onChange(async v => { PR.folderPath = v.trim(); await saveReload(); }));
+      new obsidian.Setting(containerEl).setName('Gồm cả folder con')
+        .addToggle(t => t.setValue(!!PR.folderRecursive).onChange(async v => { PR.folderRecursive = v; await saveReload(); }));
+      new obsidian.Setting(containerEl).setName('Group by (property)').setDesc('Mặc định status. Property dạng danh sách → lấy phần tử đầu; thiếu → cột "Chưa xếp".')
+        .addText(t => t.setPlaceholder('status').setValue(PR.groupBy || 'status').onChange(async v => { PR.groupBy = v.trim() || 'status'; await saveReload(); }));
+    }
     new obsidian.Setting(containerEl).setName(tr('Đường dẫn file bảng đang mở'))
       .setDesc(tr('File Markdown của bảng hiện tại "') + this.plugin.prof().name + '" (tương đối gốc vault).')
       .addText(t => t.setPlaceholder('TASKS.md').setValue(this.plugin.prof().taskPath).onChange(async v => { this.plugin.prof().taskPath = v.trim() || 'TASKS.md'; await this.plugin.saveSettings(); await this.plugin.reload(); }));
@@ -2873,4 +2928,4 @@ class PieSettingTab extends obsidian.PluginSettingTab {
 }
 
 module.exports = PieTasksPlugin;
-PieTasksPlugin._t = { today, moveTaskMd, moveTaskToPosMd, bulkSigs, bulkMd, parseLaneStatus, parseTasks, taskKey, decideMd, undoDecideMd, markUnsentMd, buildPayload, maskUrl, isReviewTask, stampOf };
+PieTasksPlugin._t = { today, moveTaskMd, moveTaskToPosMd, bulkSigs, bulkMd, parseLaneStatus, parseTasks, groupNotes, notesInFolder, taskKey, decideMd, undoDecideMd, markUnsentMd, buildPayload, maskUrl, isReviewTask, stampOf };

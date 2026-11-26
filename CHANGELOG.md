@@ -7,6 +7,7 @@
 ## [2.6.0]
 
 ### Added
+- **Nguồn folder (chỉ đọc)**: Settings → "Nguồn của bảng" = Folder: mỗi note `.md` trong folder (tuỳ chọn gồm folder con) là 1 thẻ, chia cột theo property frontmatter (mặc định `status`; danh sách → phần tử đầu; thiếu → cột "Chưa xếp"). Tiêu đề = `title` hoặc tên file, hiện `owner`/`due`; bấm thẻ mở note; sửa frontmatter thì thẻ tự nhảy cột. Chưa kéo thả/ghi file.
 - **Lane → trạng thái (từng bảng)**: Settings → ô "Lane → trạng thái", mỗi dòng `lane = nhãn` (vd `Đang làm = Đang làm`, `Hoàn thành = Hoàn thành`). Kéo thẻ / menu "Chuyển lane" / chuyển hàng loạt sang lane đó thì đổi chip trạng thái theo; lane hoàn thành → `[x]` + `✅ ngày`, kéo ra → `[ ]`, bỏ `✅`. Lane không ghi hoặc bảng chưa cấu hình: chỉ chuyển lane như cũ.
 
 ## [2.5.0]
