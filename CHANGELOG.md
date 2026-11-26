@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [2.6.0]
+
 ### Added
 - **Lane → trạng thái (từng bảng)**: Settings → ô "Lane → trạng thái", mỗi dòng `lane = nhãn` (vd `Đang làm = Đang làm`, `Hoàn thành = Hoàn thành`). Kéo thẻ / menu "Chuyển lane" / chuyển hàng loạt sang lane đó thì đổi chip trạng thái theo; lane hoàn thành → `[x]` + `✅ ngày`, kéo ra → `[ ]`, bỏ `✅`. Lane không ghi hoặc bảng chưa cấu hình: chỉ chuyển lane như cũ.
 
