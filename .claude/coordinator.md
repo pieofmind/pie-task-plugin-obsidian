@@ -24,3 +24,6 @@
 
 ## 9. Gotcha
 - Checkout chính có thể có thay đổi chưa commit của Nguyên/session khác — làm trong worktree.
+
+## 10. Cổng riêng repo (Nguyên chốt 2026-11-26)
+- Không chạy review đa model (`review-cli.sh`) cho repo này, kể cả tầng cao. Tầng cao vẫn bắt buộc E2E trước merge có backup + diff.
