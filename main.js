@@ -2085,6 +2085,17 @@ class FileSuggestModal extends obsidian.SuggestModal {
   onChooseSuggestion(f) { this.onChoose(f); }
 }
 
+class FolderSuggestModal extends obsidian.SuggestModal {
+  constructor(app, onChoose) { super(app); this.onChoose = onChoose; this.setPlaceholder(tr('Gõ để tìm folder trong vault…')); }
+  getSuggestions(q) {
+    const s = q.trim().toLowerCase();
+    const dirs = this.app.vault.getAllLoadedFiles().filter(f => f instanceof obsidian.TFolder && f.path !== '/');
+    return (s ? dirs.filter(f => f.path.toLowerCase().includes(s)) : dirs).slice(0, 50);
+  }
+  renderSuggestion(f, el) { el.createEl('div', { text: f.path }); }
+  onChooseSuggestion(f) { this.onChoose(f); }
+}
+
 class ProjectSuggestModal extends obsidian.SuggestModal {
   constructor(app, onChoose) { super(app); this.onChoose = onChoose; this.setPlaceholder(tr('Chọn dự án (note có subtype / type: project)…')); }
   _projects() {
@@ -2111,17 +2122,28 @@ class ProjectSuggestModal extends obsidian.SuggestModal {
   onChooseSuggestion(f) { this.onChoose(f); }
 }
 
+// Kiểm nguồn bảng từ modal → { ok, error } | { ok, fields }. File thiếu đường dẫn = lỗi; folder để trống = gốc vault.
+function validateProfileSource(f) {
+  const taskPath = String(f.taskPath || '').trim();
+  if (f.sourceType === 'folder') {
+    return { ok: true, fields: {
+      sourceType: 'folder', folderPath: String(f.folderPath || '').trim().replace(/^\/+|\/+$/g, ''), folderRecursive: !!f.folderRecursive,
+      groupBy: String(f.groupBy || '').trim() || 'status', taskPath: taskPath || 'TASKS.md' } };
+  }
+  if (!taskPath) return { ok: false, error: 'Chọn file công việc cho bảng.' };
+  return { ok: true, fields: { sourceType: 'file', taskPath } };
+}
 // ---------- modal thêm/sửa bảng (profile): tên + icon + màu + đường dẫn file ----------
 class ProfileModal extends obsidian.Modal {
   constructor(app, opts, resolve) { super(app); this.opts = opts; this.resolve = resolve; this.done = false; this.color = opts.color || '#2F6DB0'; this.iconType = opts.iconType || 'letter'; this.icon = opts.icon || ''; }
-  _fileRow(label, val, ph) {
-    const { contentEl } = this;
+  _fileRow(label, val, ph, folder, box) {
+    const contentEl = box || this.contentEl;
     contentEl.createEl('div', { text: label, attr: { style: 'font-size:12px;opacity:.7;margin:12px 0 4px;' } });
     const row = contentEl.createDiv({ attr: { style: 'display:flex;gap:6px;' } });
     const inp = row.createEl('input', { attr: { type: 'text', placeholder: ph } });
     inp.style.cssText = 'flex:1;'; inp.value = val || '';
     const br = row.createEl('button', { text: tr('Chọn…'), attr: { type: 'button' } });
-    br.addEventListener('click', () => new FileSuggestModal(this.app, f => { inp.value = f.path; }).open());
+    br.addEventListener('click', () => (folder ? new FolderSuggestModal(this.app, f => { inp.value = f.path; }) : new FileSuggestModal(this.app, f => { inp.value = f.path; })).open());
     return inp;
   }
   onOpen() {
@@ -2168,7 +2190,22 @@ class ProfileModal extends obsidian.Modal {
       s.addEventListener('click', () => { this.color = hex; this._sync(); updPrev(); });
       this._sw.push(s);
     });
-    this.tp = this._fileRow(tr('File công việc (bắt buộc)'), this.opts.taskPath || '', tr('vd: PROJECTS/task1.md'));
+    this.sourceType = this.opts.sourceType === 'folder' ? 'folder' : 'file';
+    contentEl.createEl('div', { text: tr('Nguồn'), attr: { style: 'font-size:12px;opacity:.7;margin:12px 0 4px;' } });
+    const sel = contentEl.createEl('select');
+    sel.createEl('option', { text: tr('File (1 file .md)'), attr: { value: 'file' } });
+    sel.createEl('option', { text: tr('Folder (mỗi note = 1 thẻ, chỉ đọc)'), attr: { value: 'folder' } });
+    sel.value = this.sourceType;
+    const fileBox = contentEl.createDiv(), folderBox = contentEl.createDiv();
+    this.tp = this._fileRow(tr('File công việc (bắt buộc)'), this.opts.taskPath || '', tr('vd: PROJECTS/task1.md'), false, fileBox);
+    this.fp = this._fileRow(tr('Folder (để trống = gốc vault)'), this.opts.folderPath || '', tr('vd: Projects/Notes'), true, folderBox);
+    const rrow = folderBox.createDiv({ attr: { style: 'margin:10px 0 0;' } });
+    this.rec = rrow.createEl('input', { attr: { type: 'checkbox', id: 'pt-prof-rec' } }); this.rec.checked = !!this.opts.folderRecursive;
+    rrow.createEl('label', { text: ' ' + tr('Gồm cả folder con'), attr: { for: 'pt-prof-rec' } });
+    folderBox.createEl('div', { text: tr('Group by (property frontmatter)'), attr: { style: 'font-size:12px;opacity:.7;margin:12px 0 4px;' } });
+    this.gb = folderBox.createEl('input', { attr: { type: 'text', placeholder: 'status' } }); this.gb.style.cssText = 'width:100%;'; this.gb.value = this.opts.groupBy || 'status';
+    const showSrc = () => { this.sourceType = sel.value; fileBox.style.display = this.sourceType === 'file' ? '' : 'none'; folderBox.style.display = this.sourceType === 'folder' ? '' : 'none'; };
+    sel.addEventListener('change', showSrc); showSrc();
     this.pp = this._fileRow(tr('File nhân sự (tuỳ chọn — để trống dùng mặc định chung)'), this.opts.peoplePath || '', tr('vd: People.md'));
     this._sync(); this._syncIcon(); updPrev();
     const btns = contentEl.createDiv({ attr: { style: 'display:flex;gap:8px;justify-content:flex-end;margin-top:18px;' } });
@@ -2179,14 +2216,16 @@ class ProfileModal extends obsidian.Modal {
   _sync() { this._sw.forEach(s => s.toggleClass('on', s.dataset.color === this.color)); }
   _syncIcon() { this._iconBtns.forEach(o => o.el.toggleClass('on', o.is())); }
   submit() {
-    const taskPath = (this.tp.value || '').trim();
-    if (!taskPath) { this.tp.focus(); return; }
+    const v = validateProfileSource({ sourceType: this.sourceType, taskPath: this.tp.value, folderPath: this.fp.value, folderRecursive: this.rec.checked, groupBy: this.gb.value });
+    if (!v.ok) { new obsidian.Notice(v.error); this.tp.focus(); return; }
     this.done = true;
-    this.resolve({ name: (this.inp.value || '').trim(), iconType: this.iconType, icon: this.icon, color: this.color, taskPath, peoplePath: (this.pp.value || '').trim() });
+    this.resolve(Object.assign({ name: (this.inp.value || '').trim(), iconType: this.iconType, icon: this.icon, color: this.color, peoplePath: (this.pp.value || '').trim() }, v.fields));
     this.close();
   }
   onClose() { this.contentEl.empty(); if (!this.done) this.resolve(null); }
 }
+const profSrcFields = r => (r.sourceType === 'folder' ? { sourceType: 'folder', folderPath: r.folderPath, folderRecursive: r.folderRecursive, groupBy: r.groupBy, taskPath: r.taskPath } : { sourceType: 'file', taskPath: r.taskPath });
+const profSrcName = r => (r.sourceType === 'folder' ? (r.folderPath || tr('Gốc vault')) : r.taskPath);
 function askProfile(app, opts) { return new Promise(res => new ProfileModal(app, opts, res).open()); }
 
 // ---------- modal quản lý danh sách bảng (sửa/xoá/đổi thứ tự) ----------
@@ -2408,16 +2447,16 @@ class PieTasksPlugin extends obsidian.Plugin {
   }
   async addProfile() {
     const r = await askProfile(this.app, { title: tr('Thêm bảng'), color: '#2F6DB0', okText: 'Tạo' });
-    if (!r || !r.taskPath) return;
-    const p = makeProfile({ name: r.name || r.taskPath, iconType: r.iconType, icon: r.icon, color: r.color, taskPath: r.taskPath, peoplePath: r.peoplePath || '' });
+    if (!r) return;
+    const p = makeProfile({ name: r.name || profSrcName(r), iconType: r.iconType, icon: r.icon, color: r.color, peoplePath: r.peoplePath || '', ...profSrcFields(r) });
     this.settings.profiles.push(p);
     await this.switchProfile(p.id);
   }
   async editProfile(id) {
     const p = this.settings.profiles.find(x => x.id === id); if (!p) return;
-    const r = await askProfile(this.app, { title: tr('Sửa bảng'), name: p.name, iconType: p.iconType, icon: p.icon, color: p.color, taskPath: p.taskPath, peoplePath: p.peoplePath, okText: 'Lưu' });
-    if (!r || !r.taskPath) return;
-    Object.assign(p, { name: r.name || r.taskPath, iconType: r.iconType, icon: r.icon, color: r.color, taskPath: r.taskPath, peoplePath: r.peoplePath || '' });
+    const r = await askProfile(this.app, { title: tr('Sửa bảng'), name: p.name, iconType: p.iconType, icon: p.icon, color: p.color, taskPath: p.taskPath, peoplePath: p.peoplePath, sourceType: p.sourceType, folderPath: p.folderPath, folderRecursive: p.folderRecursive, groupBy: p.groupBy, okText: 'Lưu' });
+    if (!r) return;
+    Object.assign(p, { name: r.name || profSrcName(r), iconType: r.iconType, icon: r.icon, color: r.color, peoplePath: r.peoplePath || '', ...profSrcFields(r) });
     await this.saveSettings();
     if (id === this.settings.activeId) await this.reload(); else this.refreshLiveViews();
   }
@@ -2928,4 +2967,4 @@ class PieSettingTab extends obsidian.PluginSettingTab {
 }
 
 module.exports = PieTasksPlugin;
-PieTasksPlugin._t = { today, moveTaskMd, moveTaskToPosMd, bulkSigs, bulkMd, parseLaneStatus, parseTasks, groupNotes, notesInFolder, taskKey, decideMd, undoDecideMd, markUnsentMd, buildPayload, maskUrl, isReviewTask, stampOf };
+PieTasksPlugin._t = { today, moveTaskMd, moveTaskToPosMd, bulkSigs, bulkMd, parseLaneStatus, validateProfileSource, makeProfile, parseTasks, groupNotes, notesInFolder, taskKey, decideMd, undoDecideMd, markUnsentMd, buildPayload, maskUrl, isReviewTask, stampOf };
