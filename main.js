@@ -477,7 +477,7 @@ function buildColumns(present, prefs, keepEmpty) {
   return cols.filter(n => !hid.has(n));
 }
 const STATUS_DEFAULT_COLS = ['pending', 'doing', 'review', 'completed'];
-const STATUS_ORDER = ['pending', 'doing', 'review', 'completed', 'notdone', 'fail', 'pause', 'cancel', 'expected', 'closed', 'open'];
+const STATUS_ORDER = ['pending', 'doing', 'review', 'completed', 'notdone', 'fail', 'pause', 'cancel', 'expected', 'closed', 'error', 'open'];
 // Bảng 1 file group theo trạng thái: cột = nhãn trạng thái; heading gốc giữ ở keyLane để khoá thẻ không đổi.
 function groupByStatus(parsed) {
   const tasks = parsed.tasks.map(t => {

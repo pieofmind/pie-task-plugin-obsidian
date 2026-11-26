@@ -32,6 +32,13 @@ assert.strictEqual(colOf(g, 'A'), 'Đang chờ'); assert.strictEqual(colOf(g, 'B
 assert.strictEqual(colOf(g, 'C'), 'Đang thực hiện'); assert.strictEqual(colOf(g, 'D'), 'Đang đánh giá');
 assert.strictEqual(colOf(g, 'E'), 'Hoàn thành'); assert.strictEqual(colOf(g, 'F'), 'Tạm dừng');
 assert.deepStrictEqual(g.lanes, ['Đang chờ', 'Đang thực hiện', 'Đang đánh giá', 'Hoàn thành', 'Tạm dừng', 'Chưa xử lý']);
+// mọi nhãn trong LABELS (+ task không token) đều ra cột có trong lanes — không thẻ nào biến mất
+const labs = ['Đang chờ', 'Mới', 'Đang thực hiện', 'Đang làm', 'Đang đánh giá', 'Chờ duyệt', 'Hoàn thành', 'Chưa hoàn thành', 'Không hoàn thành', 'Tạm dừng', 'Hủy', 'Huỷ', 'Dự kiến', 'Đã đóng', 'Đóng', 'Lỗi', 'Báo lỗi', 'Error', 'ERROR'];
+const allMd = '## L\n\n' + labs.map((l, i) => '- [ ] **T' + i + '** `' + l + '`').join('\n') + '\n- [ ] **Không token**\n- [x] **Xong tay** ✅ 2026-11-01\n';
+const ga = T.groupByStatus(T.parseTasks(allMd, ''));
+assert.strictEqual(ga.tasks.length, labs.length + 2);
+ga.tasks.forEach(t => assert(ga.lanes.includes(t.lane), 'thẻ ' + t.title + ' ở cột ' + t.lane + ' không có trong lanes'));
+assert(ga.lanes.includes('Lỗi'));
 // cột mặc định luôn có để kéo vào được, kể cả bảng rỗng
 assert.deepStrictEqual(T.groupByStatus(T.parseTasks('## L\n', '')).lanes, ['Đang chờ', 'Đang thực hiện', 'Đang đánh giá', 'Hoàn thành']);
 // khoá thẻ không đổi so với parse gốc (thao tác ghi vẫn tìm được dòng)
