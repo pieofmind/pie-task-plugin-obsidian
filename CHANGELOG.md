@@ -5,6 +5,9 @@
 ## [Unreleased]
 
 ### Added
+- **Nút Group by (kiểu Bases)** trên thanh bảng. Nguồn folder: chọn property frontmatter bất kỳ trong folder. Nguồn 1 file: **Lane (heading)** (như cũ) hoặc **Trạng thái** — cột = trạng thái, kéo thẻ đổi token trạng thái, không đổi heading.
+- **Thứ tự cột** (kéo tiêu đề cột hoặc **Tự động A→Z**) và **ẩn/hiện cột**, lưu trong profile theo từng kiểu group. Cột đã từng có vẫn hiện khi rỗng để kéo thẻ vào được; muốn bỏ thì ẩn.
+- **Trạng thái khi kéo vào lane** chỉnh ngay trên bảng: menu ⋯ của lane → "Trạng thái khi kéo vào lane" (trước đây chỉ ở Settings).
 - **Nguồn folder: kéo thẻ ghi property + tạo note từ cột**: kéo thẻ / menu "Chuyển lane" / chuyển hàng loạt sang cột khác → ghi property group-by vào frontmatter note (chỉ thay đúng dòng `key: value` — giữ comment `#`, thứ tự key, định dạng như `n: 007`; `processFrontMatter` chỉ dùng khi property nhiều dòng; note chưa có frontmatter → thêm khối `---`; body không đụng). Lưu ý: property dạng list nhiều dòng đi qua `processFrontMatter` của Obsidian nên có thể mất comment trong frontmatter của note đó.. Kéo vào "Chưa xếp" → xoá key; property dạng danh sách → 1 giá trị. Nút "+" ở cột tạo note mới trong folder với property = giá trị cột.
 - **Modal Thêm/Sửa bảng chọn nguồn File / Folder**: Folder có ô folder + Chọn…, "Gồm cả folder con", Group by (mặc định `status`); ô file không còn bắt buộc. Folder để trống = gốc vault.
 - **Nguồn folder (chỉ đọc)**: Settings → "Nguồn của bảng" = Folder: mỗi note `.md` trong folder (tuỳ chọn gồm folder con) là 1 thẻ, chia cột theo property frontmatter (mặc định `status`; danh sách → phần tử đầu; thiếu → cột "Chưa xếp"). Tiêu đề = `title` hoặc tên file, hiện `owner`/`due`; bấm thẻ mở note; sửa frontmatter thì thẻ tự nhảy cột. Chưa kéo thả/ghi file.

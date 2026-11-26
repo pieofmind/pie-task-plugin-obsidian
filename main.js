@@ -455,13 +455,53 @@ function setGroupPropMd(text, key, value) {
   lines[i] = cr(lines[i]).match(/^[^:]*:\s*/)[0].replace(/\s*$/, ' ') + yamlScalar(v) + (cm ? cm[0] : '') + eol;
   return out(lines);
 }
+// ---------- Group by kiểu Bases: property, thứ tự/ẩn cột, group 1 file theo trạng thái ----------
+function listProperties(fms) {
+  const set = new Set();
+  (fms || []).forEach(fm => { if (fm && typeof fm === 'object') Object.keys(fm).forEach(k => { if (k !== 'position') set.add(k); }); });
+  return [...set].sort((a, b) => a.localeCompare(b));
+}
+// Thứ tự đã lưu: cột đã mất bỏ, cột mới nối cuối (giữ thứ tự xuất hiện).
+function applyColumnOrder(cols, order) {
+  const o = [...new Set((order || []).filter(n => cols.includes(n)))];
+  return [...o, ...cols.filter(n => !o.includes(n))];
+}
+const sortColumnsAuto = cols => [...cols].sort((a, b) => (a === UNSORTED) - (b === UNSORTED) || a.localeCompare(b));
+const mergeKnown = (order, present) => [...(order || []), ...present.filter(n => !(order || []).includes(n))];
+// keepEmpty: cột đã từng có (nằm trong order) vẫn hiện khi rỗng để kéo thẻ vào được; cột ẩn bị loại.
+function buildColumns(present, prefs, keepEmpty) {
+  const pf = prefs || {};
+  const known = keepEmpty ? mergeKnown(pf.order, present) : present;
+  const cols = pf.sort === 'auto' ? sortColumnsAuto(known) : applyColumnOrder(known, pf.order);
+  const hid = new Set(pf.hidden || []);
+  return cols.filter(n => !hid.has(n));
+}
+const STATUS_DEFAULT_COLS = ['pending', 'doing', 'review', 'completed'];
+const STATUS_ORDER = ['pending', 'doing', 'review', 'completed', 'notdone', 'fail', 'pause', 'cancel', 'expected', 'closed', 'open'];
+// Bảng 1 file group theo trạng thái: cột = nhãn trạng thái; heading gốc giữ ở keyLane để khoá thẻ không đổi.
+function groupByStatus(parsed) {
+  const tasks = parsed.tasks.map(t => {
+    const lab = STATES[t.status] ? STATES[t.status].lab : STATES.open.lab;
+    return Object.assign({}, t, { keyLane: t.lane, lane: lab, laneName: lab, laneIcon: laneIcon(lab) });
+  });
+  const have = new Set(tasks.map(t => t.lane));
+  const lanes = STATUS_ORDER.filter(k => STATUS_DEFAULT_COLS.includes(k) || have.has(STATES[k].lab)).map(k => STATES[k].lab);
+  return Object.assign({}, parsed, { lanes, tasks, headingLanes: parsed.lanes });
+}
+// Kéo thẻ sang cột trạng thái → đổi token trạng thái trên dòng (dùng lại logic ánh xạ lane của T1). Cột lạ → giữ nguyên.
+function statusColumnRaw(raw, colLabel) {
+  const key = Object.keys(STATES).find(k => STATES[k].lab === colLabel);
+  if (key === 'open') return raw.replace(STATUS_RE_STRIP, '').replace(/- \[[xX]\]/, '- [ ]').replace(/\s*✅\s*\d{4}-\d{2}-\d{2}/, '');
+  if (!key || key === 'over' || !Object.prototype.hasOwnProperty.call(LABELS, colLabel)) return raw;
+  return laneStatusRaw(raw, colLabel);
+}
 function uniqueNotePath(paths, folder, base) {
   const dir = String(folder || '').replace(/^\/+|\/+$/g, ''), pre = dir ? dir + '/' : '', have = new Set(paths);
   let n = 1, p = pre + base + '.md';
   while (have.has(p)) p = pre + base + ' ' + (++n) + '.md';
   return p;
 }
-function taskKey(t) { return t.id ? 'id:' + t.id : (t.lane + '::' + t.title + '::' + t.line); }
+function taskKey(t) { return t.id ? 'id:' + t.id : ((t.keyLane != null ? t.keyLane : t.lane) + '::' + t.title + '::' + t.line); } // keyLane = heading gốc khi bảng group theo trạng thái
 function findTask(tasks, key) { return tasks.find(t => taskKey(t) === key) || null; }
 
 // ---------- section helpers (on a lines array) ----------
@@ -729,6 +769,7 @@ function addTaskMd(md, laneNm, opts) {
   if (!rng) return md;
   const o = opts || {};
   let line = '- [ ] **' + (o.title || 'Việc mới') + '**';
+  if (o.status && LABELS[o.status] && LABELS[o.status] !== 'completed') line += ' `' + o.status + '`';
   if (o.date) line += ' 📅 ' + o.date;
   if (o.s && o.e) line += ' `⏰ ' + o.s + '–' + o.e + '`';
   const at = insertPos(lines, rng);
@@ -776,7 +817,8 @@ function moveTaskMd(md, key, targetLaneNm, laneStatus) {
 // Thao tác hàng loạt (pure: md -> md). Key có số dòng nên đổi sau mỗi lần sửa →
 // nhận diện task bằng chữ ký ổn định { id | lane+title+thứ tự trùng tên }, parse lại mỗi bước.
 function bulkSigs(tasks, picked) {
-  return picked.map(t => ({ id: t.id, lane: t.lane, title: t.title, nth: tasks.filter(x => x.lane === t.lane && x.title === t.title && x.line < t.line).length }));
+  const hl = t => (t.keyLane != null ? t.keyLane : t.lane);
+  return picked.map(t => ({ id: t.id, lane: hl(t), title: t.title, nth: tasks.filter(x => hl(x) === hl(t) && x.title === t.title && x.line < t.line).length }));
 }
 function bulkMd(md, sigs, op) {
   const gone = {}; // số task cùng (lane,title) đã bị đưa khỏi lane → bù vào nth
@@ -1191,9 +1233,44 @@ class PieLiveView extends obsidian.ItemView {
         const b = seg.createEl('button', { cls: 'pb-vseg' + (k === this.viewMode ? ' on' : ''), text: tr(lab) });
         b.addEventListener('click', () => { this.viewMode = k; this.persist(); this.render(); });
       });
+      const gb = head.createEl('button', { cls: 'pb-vseg', text: tr('Group by') + ': ' + this.groupLabel() });
+      gb.addEventListener('click', ev => { ev.stopPropagation(); this.openGroupMenu(gb); });
       const add = head.createEl('button', { cls: 'pb-icon-btn', attr: { title: tr('Thêm việc') } }); add.innerHTML = I.plus;
       add.addEventListener('click', () => { const ls = this.plugin.taskData.lanes; if (ls.length) this.plugin.addTask(ls[0]); });
     }
+  }
+
+  groupLabel() {
+    const m = this.plugin.groupMode();
+    return m === 'prop' ? ((this.plugin.prof().groupBy || '').trim() || 'status') : (m === 'status' ? tr('Trạng thái') : tr('Lane (heading)'));
+  }
+  // Menu Group by (kiểu Bases): nguồn → chọn property / lane|trạng thái; thứ tự cột; ẩn/hiện cột.
+  openGroupMenu(btn) {
+    const P = this.plugin, m = P.groupMode(), pf = P._prefs(), mark = on => (on ? '✓ ' : '    ');
+    const items = [];
+    if (m === 'prop') {
+      const cur = (P.prof().groupBy || '').trim() || 'status', props = P.listFolderProps();
+      (props.includes(cur) ? props : [cur, ...props]).forEach(k => items.push([mark(k === cur) + k, () => P.setGroupBy(k)]));
+    } else {
+      items.push([mark(m === 'lane') + tr('Lane (heading)'), () => P.setGroupBy('lane')], [mark(m === 'status') + tr('Trạng thái'), () => P.setGroupBy('status')]);
+    }
+    if (m !== 'lane') {
+      items.push(['div'], [mark(pf.sort !== 'auto') + tr('Thứ tự cột: thủ công (kéo tiêu đề cột)'), () => P.setColumnSort('manual')], [mark(pf.sort === 'auto') + tr('Thứ tự cột: tự động (A→Z)'), () => P.setColumnSort('auto')], ['div']);
+      const hid = new Set(pf.hidden || []);
+      mergeKnown(pf.order, P.taskData.lanes).forEach(c => items.push([mark(!hid.has(c)) + (laneName(c) || c), () => P.toggleColumn(c)]));
+    }
+    this.openPop(btn, items);
+  }
+  openPop(btn, items) {
+    this.closeLaneMenu();
+    const pop = document.createElement('div'); pop.className = 'pb-lane-pop'; this._lanePop = pop;
+    items.forEach(it => { if (it[0] === 'div') { pop.createDiv('pb-pop-div'); return; } const b = pop.createEl('button', { text: it[0], cls: it[2] || '' }); b.style.whiteSpace = 'pre'; b.addEventListener('click', () => { this.closeLaneMenu(); it[1](); }); });
+    document.body.appendChild(pop);
+    const r = btn.getBoundingClientRect();
+    pop.style.top = (r.bottom + 6) + 'px';
+    pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
+    this._laneOutside = ev => { if (!pop.contains(ev.target)) this.closeLaneMenu(); };
+    setTimeout(() => document.addEventListener('mousedown', this._laneOutside), 0);
   }
 
   // ---------- BOARD ----------
@@ -1536,16 +1613,15 @@ class PieLiveView extends obsidian.ItemView {
   toggleLane(nm) { if (this.collapsed.has(nm)) this.collapsed.delete(nm); else this.collapsed.add(nm); this.persist(); this.render(); }
 
   openLaneMenu(nm, laneRaw, btn) {
-    this.closeLaneMenu();
-    const pop = document.createElement('div'); pop.className = 'pb-lane-pop'; this._lanePop = pop;
-    const items = [[tr('Chọn tất cả việc trong lane'), () => this.pickLane(laneRaw)], ['div'], [tr('Sửa tên lane'), () => this.plugin.renameLane(nm)], ['div'], [tr('Chèn lane trước'), () => this.plugin.insertLane(nm, true)], [tr('Chèn lane sau'), () => this.plugin.insertLane(nm, false)], ['div'], [tr('Sắp xếp theo tên'), () => this.plugin.sortLane(nm, 'text')], [tr('Sắp xếp theo hạn'), () => this.plugin.sortLane(nm, 'due')], ['div'], [tr('Xoá lane'), () => this.plugin.deleteLane(nm), 'danger']];
-    items.forEach(it => { if (it[0] === 'div') { pop.createDiv('pb-pop-div'); return; } const b = pop.createEl('button', { text: it[0], cls: it[2] || '' }); b.addEventListener('click', () => { this.closeLaneMenu(); it[1](); }); });
-    document.body.appendChild(pop);
-    const r = btn.getBoundingClientRect();
-    pop.style.top = (r.bottom + 6) + 'px';
-    pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
-    this._laneOutside = ev => { if (!pop.contains(ev.target)) this.closeLaneMenu(); };
-    setTimeout(() => document.addEventListener('mousedown', this._laneOutside), 0);
+    const P = this.plugin, m = P.groupMode();
+    if (m !== 'lane') { // cột do group-by sinh ra: không sửa heading/ghi file, chỉ chọn / ẩn
+      this.openPop(btn, [[tr('Chọn tất cả việc trong lane'), () => this.pickLane(laneRaw)], ['div'], [tr('Ẩn cột này'), () => P.toggleColumn(laneRaw)]]);
+      return;
+    }
+    const cur = (P.prof().laneStatus || {})[nm];
+    const stMenu = () => this.openPop(btn, [[(cur ? '    ' : '✓ ') + tr('Không đổi trạng thái'), () => P.setLaneStatus(nm, null)], ['div'],
+      ...SETTABLE.filter(k => LABELS[STATES[k].lab]).map(k => [(cur === STATES[k].lab ? '✓ ' : '    ') + tr(STATES[k].lab), () => P.setLaneStatus(nm, STATES[k].lab)])]);
+    this.openPop(btn, [[tr('Chọn tất cả việc trong lane'), () => this.pickLane(laneRaw)], ['div'], [tr('Sửa tên lane'), () => this.plugin.renameLane(nm)], [tr('Trạng thái khi kéo vào lane') + (cur ? ': ' + cur : '') + ' …', () => setTimeout(stMenu, 0)], ['div'], [tr('Chèn lane trước'), () => this.plugin.insertLane(nm, true)], [tr('Chèn lane sau'), () => this.plugin.insertLane(nm, false)], ['div'], [tr('Sắp xếp theo tên'), () => this.plugin.sortLane(nm, 'text')], [tr('Sắp xếp theo hạn'), () => this.plugin.sortLane(nm, 'due')], ['div'], [tr('Xoá lane'), () => this.plugin.deleteLane(nm), 'danger']]);
   }
   closeLaneMenu() { if (this._lanePop) { this._lanePop.remove(); this._lanePop = null; } if (this._laneOutside) { document.removeEventListener('mousedown', this._laneOutside); this._laneOutside = null; } }
 
@@ -2350,6 +2426,8 @@ function makeProfile(o) {
     taskPath: 'TASKS.md', peoplePath: '', // '' → fallback defaultPeoplePath / DEFAULT_PEOPLE
     viewState: {}, laneStyles: {},
     sourceType: 'file', folderPath: '', folderRecursive: false, groupBy: 'status', // nguồn: 'file' (TASKS.md) | 'folder' (note = thẻ, chỉ đọc)
+    fileGroup: 'lane', // nguồn file: 'lane' (heading) | 'status' (cột = trạng thái)
+    columnPrefs: {},   // { [nhóm]: { order:[], sort:'manual'|'auto', hidden:[] } } — nhóm = 'status' | 'prop:<tên>'
     laneStatus: {}, // lane → nhãn trạng thái; rỗng = kéo lane không đổi trạng thái
     webhookUrl: '', webhookChannel: '' // rỗng → dùng cài đặt chung
   }, o || {});
@@ -2536,15 +2614,48 @@ class PieTasksPlugin extends obsidian.Plugin {
     const p = this.prof(), mc = this.app.metadataCache;
     const files = notesInFolder(this.app.vault.getMarkdownFiles(), obsidian.normalizePath(p.folderPath || '/'), !!p.folderRecursive);
     const g = groupNotes(files.map(f => ({ path: f.path, frontmatter: (mc.getFileCache(f) || {}).frontmatter })), p.groupBy);
-    this.taskFile = null; this.taskData = { lanes: g.lanes, tasks: g.tasks, path: p.folderPath };
+    this.taskFile = null; this.taskData = this._shapeColumns({ lanes: g.lanes, tasks: g.tasks, path: p.folderPath });
   }
   async loadTasks() {
     if (this.prof().sourceType === 'folder') return this.loadFolderTasks();
     const path = obsidian.normalizePath(this.prof().taskPath || 'TASKS.md');
     const f = this.app.vault.getAbstractFileByPath(path);
     if (!(f instanceof obsidian.TFile)) { this.taskData = null; this.taskFile = null; return; }
-    this.taskFile = f; const md = await this.app.vault.read(f); this.taskData = parseTasks(md, path);
+    this.taskFile = f; const md = await this.app.vault.read(f); const parsed = parseTasks(md, path);
+    this.taskData = this.groupMode() === 'status' ? this._shapeColumns(groupByStatus(parsed)) : parsed;
   }
+  // ---- Group by kiểu Bases ----
+  groupMode() { const p = this.prof(); return p.sourceType === 'folder' ? 'prop' : (p.fileGroup === 'status' ? 'status' : 'lane'); }
+  _groupId() { return this.groupMode() === 'prop' ? 'prop:' + ((this.prof().groupBy || '').trim() || 'status') : 'status'; }
+  _prefs() { const p = this.prof(), cp = p.columnPrefs || (p.columnPrefs = {}), id = this._groupId(); return cp[id] || (cp[id] = { order: [], sort: 'manual', hidden: [] }); }
+  // Áp thứ tự / ẩn cột đã lưu. Cột mới ghi nhớ vào cuối order → cột đã từng có vẫn hiện khi rỗng (kéo thẻ vào được).
+  _shapeColumns(data) {
+    const pf = this._prefs(), present = data.lanes, known = mergeKnown(pf.order, present);
+    if (known.length !== (pf.order || []).length) { pf.order = known; this.saveSettings(); }
+    return Object.assign({}, data, { lanes: buildColumns(present, pf, true) });
+  }
+  async _saveReload() { await this.saveSettings(); await this.reload(); }
+  setGroupBy(v) { const p = this.prof(); if (p.sourceType === 'folder') p.groupBy = v; else p.fileGroup = v === 'status' ? 'status' : 'lane'; return this._saveReload(); }
+  setColumnSort(m) { this._prefs().sort = m === 'auto' ? 'auto' : 'manual'; return this._saveReload(); }
+  toggleColumn(raw) { const pf = this._prefs(), h = pf.hidden || []; pf.hidden = h.includes(raw) ? h.filter(x => x !== raw) : [...h, raw]; return this._saveReload(); }
+  reorderColumn(src, tgt, before) {
+    const pf = this._prefs(), shown = this.taskData.lanes, s = this._laneRaw(src) || src, t = this._laneRaw(tgt) || tgt;
+    const arr = [...shown, ...mergeKnown(pf.order, shown).filter(x => !shown.includes(x))].filter(x => x !== s);
+    const i = arr.indexOf(t); if (i < 0) return;
+    arr.splice(before ? i : i + 1, 0, s); pf.order = arr; pf.sort = 'manual';
+    return this._saveReload();
+  }
+  listFolderProps() {
+    const p = this.prof(), mc = this.app.metadataCache;
+    return listProperties(notesInFolder(this.app.vault.getMarkdownFiles(), obsidian.normalizePath(p.folderPath || '/'), !!p.folderRecursive).map(f => (mc.getFileCache(f) || {}).frontmatter));
+  }
+  // Ánh xạ lane → trạng thái ngay trên bảng (menu Tuỳ chọn lane). label=null → bỏ ánh xạ; nhãn lạ bị bỏ.
+  async setLaneStatus(nm, label) {
+    const p = this.prof(), ls = Object.assign({}, p.laneStatus || {});
+    if (label == null) delete ls[nm]; else if (Object.prototype.hasOwnProperty.call(LABELS, label)) ls[nm] = label; else return;
+    p.laneStatus = ls; await this.saveSettings();
+  }
+  _statusMove(keys, lab) { return this.bulkApply(keys, (md, key) => editLineMd(md, key, l => statusColumnRaw(l, lab))); }
   refreshLiveViews() { this.app.workspace.getLeavesOfType(LIVE_VIEW).forEach(l => { if (l.view instanceof PieLiveView) l.view.render(); }); }
   async reload() { await this.loadTasks(); this.refreshLiveViews(); this.scheduleRollup(); }
   // ---- Rollup task con → frontmatter project note (cho Dashboard Projects.base) ----
@@ -2786,7 +2897,14 @@ class PieTasksPlugin extends obsidian.Plugin {
     } catch (e) { new obsidian.Notice(tr('Không tạo được note: ') + (e && e.message || e)); return null; }
   }
   _notePaths(keys) { const ts = (this.taskData && this.taskData.tasks) || []; return keys.map(k => (findTask(ts, k) || {}).notePath).filter(Boolean); }
-  addTask(laneRaw) { if (this.isFolderSource()) return this.createNote(laneRaw); const nm = laneName(laneRaw); this._pendingNew = { lane: laneRaw, title: tr('Việc mới') }; return this.mutate(md => addTaskMd(md, nm, { title: tr('Việc mới'), date: today(), s: '09:00', e: '10:00' }), isSyncedLane(laneRaw) ? 'Đã thêm. Lưu ý: lane 1Office sẽ bị sync ghi đè.' : null); }
+  addTask(laneRaw) {
+    if (this.isFolderSource()) return this.createNote(laneRaw);
+    if (this.groupMode() === 'status') { // thêm vào heading đầu tiên, gắn trạng thái của cột
+      const head = laneName((this.taskData.headingLanes || [])[0] || ''), st = LABELS[laneRaw] && LABELS[laneRaw] !== 'completed' ? laneRaw : null;
+      if (st) this._pendingNew = { lane: laneRaw, title: tr('Việc mới') };
+      return this.mutate(md => addTaskMd(md, head, { title: tr('Việc mới'), date: today(), s: '09:00', e: '10:00', status: st }));
+    }
+    const nm = laneName(laneRaw); this._pendingNew = { lane: laneRaw, title: tr('Việc mới') }; return this.mutate(md => addTaskMd(md, nm, { title: tr('Việc mới'), date: today(), s: '09:00', e: '10:00' }), isSyncedLane(laneRaw) ? 'Đã thêm. Lưu ý: lane 1Office sẽ bị sync ghi đè.' : null); }
   async deleteTask(t) { if (!(await askConfirm(this.app, 'Xoá việc "' + t.title + '"?'))) return; await this.mutate(md => deleteTaskMd(md, taskKey(t)), this.syncWarn(t)); }
   duplicateTask(t) { return this.mutate(md => duplicateTaskMd(md, taskKey(t))); }
   async bulkApply(keys, op) {
@@ -2798,21 +2916,21 @@ class PieTasksPlugin extends obsidian.Plugin {
     return picked.length;
   }
   bulkStatus(keys, k) { return this.bulkApply(keys, (md, key) => editLineMd(md, key, l => setStatusRaw(l, k))); }
-  bulkMove(keys, laneNm) { if (this.isFolderSource()) return this.moveNotes(this._notePaths(keys), laneNm); const ls = this.prof().laneStatus; return this.bulkApply(keys, (md, key) => moveTaskMd(md, key, laneNm, ls)); }
+  bulkMove(keys, laneNm) { if (this.groupMode() === 'status') return this._statusMove(keys, laneNm); if (this.isFolderSource()) return this.moveNotes(this._notePaths(keys), laneNm); const ls = this.prof().laneStatus; return this.bulkApply(keys, (md, key) => moveTaskMd(md, key, laneNm, ls)); }
   async bulkDelete(keys) {
     if (!(await askConfirm(this.app, tr('Xoá ') + keys.length + tr(' việc đã chọn? Không hoàn tác được.')))) return 0;
     return this.bulkApply(keys, (md, key) => deleteTaskMd(md, key));
   }
-  moveTask(key, targetLaneNm) { if (this.isFolderSource()) return this.moveNotes(this._notePaths([key]), targetLaneNm); const t = findTask(this.taskData ? this.taskData.tasks : [], key); return this.mutate(md => moveTaskMd(md, key, targetLaneNm, this.prof().laneStatus), (t && t.synced) ? 'Đã chuyển. Lưu ý: task 1Office có thể bị sync đưa lại.' : null); }
-  moveTaskToPos(key, targetLaneNm, beforeKey) { if (this.isFolderSource()) return this.moveNotes(this._notePaths([key]), targetLaneNm); const t = findTask(this.taskData ? this.taskData.tasks : [], key); return this.mutate(md => moveTaskToPosMd(md, key, targetLaneNm, beforeKey, this.prof().laneStatus), (t && t.synced) ? 'Đã sắp xếp. Lưu ý: lane 1Office bị sync ghi đè thứ tự.' : null); }
+  moveTask(key, targetLaneNm) { if (this.groupMode() === 'status') return this._statusMove([key], targetLaneNm); if (this.isFolderSource()) return this.moveNotes(this._notePaths([key]), targetLaneNm); const t = findTask(this.taskData ? this.taskData.tasks : [], key); return this.mutate(md => moveTaskMd(md, key, targetLaneNm, this.prof().laneStatus), (t && t.synced) ? 'Đã chuyển. Lưu ý: task 1Office có thể bị sync đưa lại.' : null); }
+  moveTaskToPos(key, targetLaneNm, beforeKey) { if (this.groupMode() === 'status') return this._statusMove([key], targetLaneNm); if (this.isFolderSource()) return this.moveNotes(this._notePaths([key]), targetLaneNm); const t = findTask(this.taskData ? this.taskData.tasks : [], key); return this.mutate(md => moveTaskToPosMd(md, key, targetLaneNm, beforeKey, this.prof().laneStatus), (t && t.synced) ? 'Đã sắp xếp. Lưu ý: lane 1Office bị sync ghi đè thứ tự.' : null); }
   _laneRaw(nm) { return ((this.taskData && this.taskData.lanes) || []).find(l => laneName(l) === nm) || ''; }
   _laneColor(nm) { const ls = this.prof().laneStyles || {}; return (ls[nm] && ls[nm].color) || ''; }
   async _saveLaneStyle(name, color, oldName) { const p = this.prof(); const ls = p.laneStyles || (p.laneStyles = {}); if (oldName && oldName !== name) delete ls[oldName]; if (color) ls[name] = { color }; else delete ls[name]; await this.saveSettings(); }
-  async renameLane(nm) { const cur = laneEmoji(this._laneRaw(nm)); const curColor = this._laneColor(nm); const r = await askLane(this.app, { title: tr('Sửa lane'), name: nm, emoji: cur, color: curColor, okText: 'Lưu' }); if (!r) return; const heading = laneHeading(r.emoji, r.name); if (heading === laneHeading(cur, nm) && r.color === curColor) return; await this._saveLaneStyle(r.name, r.color, nm); await this.mutate(md => renameLaneMd(md, nm, heading)); }
-  async addLane() { const r = await askLane(this.app, { title: tr('Thêm lane'), name: '', emoji: '📋', okText: 'Thêm' }); if (!r) return; await this._saveLaneStyle(r.name, r.color); await this.mutate(md => addLaneMd(md, laneHeading(r.emoji, r.name))); }
+  async renameLane(nm) { if (this.groupMode() !== 'lane') { new obsidian.Notice(tr('Cột do Group by sinh ra — đổi Group by về Lane (heading) để sửa lane.')); return; } const cur = laneEmoji(this._laneRaw(nm)); const curColor = this._laneColor(nm); const r = await askLane(this.app, { title: tr('Sửa lane'), name: nm, emoji: cur, color: curColor, okText: 'Lưu' }); if (!r) return; const heading = laneHeading(r.emoji, r.name); if (heading === laneHeading(cur, nm) && r.color === curColor) return; await this._saveLaneStyle(r.name, r.color, nm); await this.mutate(md => renameLaneMd(md, nm, heading)); }
+  async addLane() { if (this.groupMode() !== 'lane') { new obsidian.Notice(tr('Cột do Group by sinh ra — đổi Group by về Lane (heading) để sửa lane.')); return; } const r = await askLane(this.app, { title: tr('Thêm lane'), name: '', emoji: '📋', okText: 'Thêm' }); if (!r) return; await this._saveLaneStyle(r.name, r.color); await this.mutate(md => addLaneMd(md, laneHeading(r.emoji, r.name))); }
   async insertLane(refNm, before) { const r = await askLane(this.app, { title: tr('Thêm lane'), name: '', emoji: '📋', okText: 'Thêm' }); if (!r) return; await this._saveLaneStyle(r.name, r.color); await this.mutate(md => addLaneMd(md, laneHeading(r.emoji, r.name), refNm, !before)); }
   async deleteLane(nm) { if (!(await askConfirm(this.app, 'Xoá lane "' + nm + '"? Việc trong lane sẽ dồn sang lane kề.'))) return; await this.mutate(md => deleteLaneMd(md, nm)); }
-  moveLane(src, tgt, before) { if (src === tgt) return; return this.mutate(md => moveLaneMd(md, src, tgt, before)); }
+  moveLane(src, tgt, before) { if (src === tgt) return; if (this.groupMode() !== 'lane') return this.reorderColumn(src, tgt, before); return this.mutate(md => moveLaneMd(md, src, tgt, before)); }
   sortLane(nm, mode) { return this.mutate(md => sortLaneMd(md, nm, mode)); }
 
   // ---- Duyệt / Yêu cầu sửa + báo bot qua webhook ----
@@ -3048,4 +3166,4 @@ class PieSettingTab extends obsidian.PluginSettingTab {
 }
 
 module.exports = PieTasksPlugin;
-PieTasksPlugin._t = { today, moveTaskMd, moveTaskToPosMd, bulkSigs, bulkMd, parseLaneStatus, applyGroupValue, setGroupPropMd, uniqueNotePath, validateProfileSource, makeProfile, parseTasks, groupNotes, notesInFolder, taskKey, decideMd, undoDecideMd, markUnsentMd, buildPayload, maskUrl, isReviewTask, stampOf };
+PieTasksPlugin._t = { today, moveTaskMd, moveTaskToPosMd, bulkSigs, bulkMd, parseLaneStatus, listProperties, applyColumnOrder, buildColumns, mergeKnown, groupByStatus, statusColumnRaw, editLineMd, addTaskMd, applyGroupValue, setGroupPropMd, uniqueNotePath, validateProfileSource, makeProfile, parseTasks, groupNotes, notesInFolder, taskKey, decideMd, undoDecideMd, markUnsentMd, buildPayload, maskUrl, isReviewTask, stampOf };
