@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 
+### Added
+- **Nguồn folder (chỉ đọc)**: Settings → "Nguồn của bảng" = Folder: mỗi note `.md` trong folder (tuỳ chọn gồm folder con) là 1 thẻ, chia cột theo property frontmatter (mặc định `status`; danh sách → phần tử đầu; thiếu → cột "Chưa xếp"). Tiêu đề = `title` hoặc tên file, hiện `owner`/`due`; bấm thẻ mở note; sửa frontmatter thì thẻ tự nhảy cột. Chưa kéo thả/ghi file.
+
 ## [2.6.0]
 
 ### Added
