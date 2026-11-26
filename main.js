@@ -412,6 +412,55 @@ function groupNotes(notes, groupBy) {
   if (tasks.some(t => t.lane === UNSORTED)) lanes.push(UNSORTED);
   return { lanes, tasks };
 }
+// Ghi giá trị group vào frontmatter (SỬA TẠI CHỖ — processFrontMatter cần mutate). "Chưa xếp"/rỗng → xoá key; list → 1 giá trị. Chỉ đụng đúng key này.
+function applyGroupValue(fm, key, value) {
+  const k = String(key || '').trim();
+  if (!k) throw new Error('applyGroupValue: thiếu tên property');
+  if (k === '__proto__' || k === 'constructor' || k === 'prototype') return fm;
+  const v = String(value == null ? '' : value).trim();
+  if (!v || v === UNSORTED) delete fm[k]; else fm[k] = v;
+  return fm;
+}
+// Ghi property group-by bằng cách thay ĐÚNG dòng `key: value` trong frontmatter (giữ comment, thứ tự, định dạng key khác; không parse/dump YAML).
+// → { text, complex }. complex=true: property nhiều dòng (block list/scalar) hoặc frontmatter không đóng → để caller dùng processFrontMatter.
+function yamlScalar(v) { return /^\p{L}(?:[\p{L}\p{N} _.\/-]*[\p{L}\p{N}_.\/-])?$/u.test(v) && !/^(true|false|yes|no|on|off|null|y|n)$/i.test(v) ? v : JSON.stringify(v); }
+function setGroupPropMd(text, key, value) {
+  const k = String(key || '').trim();
+  if (!k) throw new Error('setGroupPropMd: thiếu tên property');
+  const v = String(value == null ? '' : value).trim(), del = !v || v === UNSORTED;
+  const bom = text.charCodeAt(0) === 0xFEFF ? '﻿' : '', body = text.slice(bom.length);
+  const nl = (body.match(/\r?\n/) || ['\n'])[0]; // theo kiểu xuống dòng đầu tiên của file
+  const lines = body.split('\n'), cr = l => l.replace(/\r$/, '');
+  const out = ls => ({ text: bom + ls.join('\n'), complex: false });
+  if (!(lines.length > 1 && cr(lines[0]) === '---')) return { text: del ? text : bom + '---' + nl + k + ': ' + yamlScalar(v) + nl + '---' + nl + body, complex: false };
+  const end = lines.findIndex((l, i) => i > 0 && /^(---|\.\.\.)\s*$/.test(cr(l)));
+  if (end < 0) return { text, complex: true };
+  const re = new RegExp('^["\']?' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '["\']?\\s*:(.*)$');
+  const i = lines.slice(1, end).findIndex(l => re.test(cr(l))) + 1;
+  if (i === 0) {
+    if (del) return { text, complex: false };
+    lines.splice(end, 0, k + ': ' + yamlScalar(v) + (lines[end].endsWith('\r') ? '\r' : ''));
+    return out(lines);
+  }
+  // property không nằm gọn trên 1 dòng (scalar nhiều dòng, block list, | >) → để processFrontMatter
+  const rest = cr(lines[i]).match(re)[1];
+  if (/^\s*[|>]/.test(rest) || (i + 1 < end && /^(\s+\S|-(\s|$))/.test(cr(lines[i + 1])))) return { text, complex: true };
+  if (del) { lines.splice(i, 1); return out(lines); }
+  // giữ comment cuối dòng: nếu giá trị cũ có quote thì chỉ tính comment sau quote đã đóng
+  const q = rest.trim()[0], t = rest.replace(/^\s+/, '');
+  let tail = t;
+  if (q === '"' || q === "'") { const m = t.match(q === '"' ? /^"(?:[^"\\]|\\.)*"/ : /^'(?:[^']|'')*'/); tail = m ? t.slice(m[0].length) : ''; }
+  const cm = tail.match(/\s+#.*$/);
+  const eol = lines[i].endsWith('\r') ? '\r' : '';
+  lines[i] = cr(lines[i]).match(/^[^:]*:\s*/)[0].replace(/\s*$/, ' ') + yamlScalar(v) + (cm ? cm[0] : '') + eol;
+  return out(lines);
+}
+function uniqueNotePath(paths, folder, base) {
+  const dir = String(folder || '').replace(/^\/+|\/+$/g, ''), pre = dir ? dir + '/' : '', have = new Set(paths);
+  let n = 1, p = pre + base + '.md';
+  while (have.has(p)) p = pre + base + ' ' + (++n) + '.md';
+  return p;
+}
 function taskKey(t) { return t.id ? 'id:' + t.id : (t.lane + '::' + t.title + '::' + t.line); }
 function findTask(tasks, key) { return tasks.find(t => taskKey(t) === key) || null; }
 
@@ -2705,7 +2754,39 @@ class PieTasksPlugin extends obsidian.Plugin {
   setProject(t, link) { if (!link) return; return this.mutate(md => editLineMd(md, taskKey(t), l => setProjectRaw(l, link))); }
   removeProject(t) { return this.mutate(md => editLineMd(md, taskKey(t), l => setProjectRaw(l, null))); }
   pickProject(t) { const src = this.taskFile ? this.taskFile.path : ''; new ProjectSuggestModal(this.app, f => this.setProject(t, this.app.metadataCache.fileToLinktext(f, src, true))).open(); }
-  addTask(laneRaw) { const nm = laneName(laneRaw); this._pendingNew = { lane: laneRaw, title: tr('Việc mới') }; return this.mutate(md => addTaskMd(md, nm, { title: tr('Việc mới'), date: today(), s: '09:00', e: '10:00' }), isSyncedLane(laneRaw) ? 'Đã thêm. Lưu ý: lane 1Office sẽ bị sync ghi đè.' : null); }
+  isFolderSource() { return this.prof().sourceType === 'folder'; }
+  // Nguồn folder: ghi property group-by bằng vault.process sửa đúng 1 dòng (processFrontMatter chỉ cho property nhiều dòng); body note không bị đụng. Chỉ ghi note đang hiện trên bảng.
+  async moveNotes(paths, laneNm) {
+    if (!this.isFolderSource()) return 0;
+    const lane = ((this.taskData && this.taskData.lanes) || []).find(l => l === laneNm || laneName(l) === laneNm);
+    if (lane == null) return 0;
+    const key = (this.prof().groupBy || '').trim() || 'status';
+    const shown = new Map(((this.taskData && this.taskData.tasks) || []).map(t => [t.notePath, t]));
+    let n = 0;
+    try {
+      for (const path of paths) {
+        const t = shown.get(path), f = this.app.vault.getAbstractFileByPath(path);
+        if (!t || !f || t.lane === lane) continue; // không hiện / không còn / đã ở cột này → không ghi
+        let complex = false;
+        await this.app.vault.process(f, text => { const r = setGroupPropMd(text, key, lane); complex = r.complex; return r.text; }); // atomic; chỉ đổi đúng dòng property
+        if (complex) await this.app.fileManager.processFrontMatter(f, fm => { applyGroupValue(fm, key, lane); }); // property nhiều dòng: để Obsidian dump (có thể mất comment frontmatter)
+        n++;
+      }
+    } catch (e) { new obsidian.Notice(tr('Không ghi được property: ') + (e && e.message || e)); }
+    if (n) await this.reload();
+    return n;
+  }
+  async createNote(laneRaw) {
+    const p = this.prof(), key = (p.groupBy || '').trim() || 'status';
+    const path = uniqueNotePath(this.app.vault.getMarkdownFiles().map(f => f.path), obsidian.normalizePath(p.folderPath || ''), tr('Việc mới'));
+    try {
+      const f = await this.app.vault.create(path, setGroupPropMd('', key, laneRaw).text);
+      await this.reload();
+      return f;
+    } catch (e) { new obsidian.Notice(tr('Không tạo được note: ') + (e && e.message || e)); return null; }
+  }
+  _notePaths(keys) { const ts = (this.taskData && this.taskData.tasks) || []; return keys.map(k => (findTask(ts, k) || {}).notePath).filter(Boolean); }
+  addTask(laneRaw) { if (this.isFolderSource()) return this.createNote(laneRaw); const nm = laneName(laneRaw); this._pendingNew = { lane: laneRaw, title: tr('Việc mới') }; return this.mutate(md => addTaskMd(md, nm, { title: tr('Việc mới'), date: today(), s: '09:00', e: '10:00' }), isSyncedLane(laneRaw) ? 'Đã thêm. Lưu ý: lane 1Office sẽ bị sync ghi đè.' : null); }
   async deleteTask(t) { if (!(await askConfirm(this.app, 'Xoá việc "' + t.title + '"?'))) return; await this.mutate(md => deleteTaskMd(md, taskKey(t)), this.syncWarn(t)); }
   duplicateTask(t) { return this.mutate(md => duplicateTaskMd(md, taskKey(t))); }
   async bulkApply(keys, op) {
@@ -2717,13 +2798,13 @@ class PieTasksPlugin extends obsidian.Plugin {
     return picked.length;
   }
   bulkStatus(keys, k) { return this.bulkApply(keys, (md, key) => editLineMd(md, key, l => setStatusRaw(l, k))); }
-  bulkMove(keys, laneNm) { const ls = this.prof().laneStatus; return this.bulkApply(keys, (md, key) => moveTaskMd(md, key, laneNm, ls)); }
+  bulkMove(keys, laneNm) { if (this.isFolderSource()) return this.moveNotes(this._notePaths(keys), laneNm); const ls = this.prof().laneStatus; return this.bulkApply(keys, (md, key) => moveTaskMd(md, key, laneNm, ls)); }
   async bulkDelete(keys) {
     if (!(await askConfirm(this.app, tr('Xoá ') + keys.length + tr(' việc đã chọn? Không hoàn tác được.')))) return 0;
     return this.bulkApply(keys, (md, key) => deleteTaskMd(md, key));
   }
-  moveTask(key, targetLaneNm) { const t = findTask(this.taskData ? this.taskData.tasks : [], key); return this.mutate(md => moveTaskMd(md, key, targetLaneNm, this.prof().laneStatus), (t && t.synced) ? 'Đã chuyển. Lưu ý: task 1Office có thể bị sync đưa lại.' : null); }
-  moveTaskToPos(key, targetLaneNm, beforeKey) { const t = findTask(this.taskData ? this.taskData.tasks : [], key); return this.mutate(md => moveTaskToPosMd(md, key, targetLaneNm, beforeKey, this.prof().laneStatus), (t && t.synced) ? 'Đã sắp xếp. Lưu ý: lane 1Office bị sync ghi đè thứ tự.' : null); }
+  moveTask(key, targetLaneNm) { if (this.isFolderSource()) return this.moveNotes(this._notePaths([key]), targetLaneNm); const t = findTask(this.taskData ? this.taskData.tasks : [], key); return this.mutate(md => moveTaskMd(md, key, targetLaneNm, this.prof().laneStatus), (t && t.synced) ? 'Đã chuyển. Lưu ý: task 1Office có thể bị sync đưa lại.' : null); }
+  moveTaskToPos(key, targetLaneNm, beforeKey) { if (this.isFolderSource()) return this.moveNotes(this._notePaths([key]), targetLaneNm); const t = findTask(this.taskData ? this.taskData.tasks : [], key); return this.mutate(md => moveTaskToPosMd(md, key, targetLaneNm, beforeKey, this.prof().laneStatus), (t && t.synced) ? 'Đã sắp xếp. Lưu ý: lane 1Office bị sync ghi đè thứ tự.' : null); }
   _laneRaw(nm) { return ((this.taskData && this.taskData.lanes) || []).find(l => laneName(l) === nm) || ''; }
   _laneColor(nm) { const ls = this.prof().laneStyles || {}; return (ls[nm] && ls[nm].color) || ''; }
   async _saveLaneStyle(name, color, oldName) { const p = this.prof(); const ls = p.laneStyles || (p.laneStyles = {}); if (oldName && oldName !== name) delete ls[oldName]; if (color) ls[name] = { color }; else delete ls[name]; await this.saveSettings(); }
@@ -2967,4 +3048,4 @@ class PieSettingTab extends obsidian.PluginSettingTab {
 }
 
 module.exports = PieTasksPlugin;
-PieTasksPlugin._t = { today, moveTaskMd, moveTaskToPosMd, bulkSigs, bulkMd, parseLaneStatus, validateProfileSource, makeProfile, parseTasks, groupNotes, notesInFolder, taskKey, decideMd, undoDecideMd, markUnsentMd, buildPayload, maskUrl, isReviewTask, stampOf };
+PieTasksPlugin._t = { today, moveTaskMd, moveTaskToPosMd, bulkSigs, bulkMd, parseLaneStatus, applyGroupValue, setGroupPropMd, uniqueNotePath, validateProfileSource, makeProfile, parseTasks, groupNotes, notesInFolder, taskKey, decideMd, undoDecideMd, markUnsentMd, buildPayload, maskUrl, isReviewTask, stampOf };
