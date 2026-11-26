@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [2.7.0]
+
 ### Added
 - **Nút Group by (kiểu Bases)** trên thanh bảng. Nguồn folder: chọn property frontmatter bất kỳ trong folder. Nguồn 1 file: **Lane (heading)** (như cũ) hoặc **Trạng thái** — cột = trạng thái, kéo thẻ đổi token trạng thái, không đổi heading.
 - **Thứ tự cột** (kéo tiêu đề cột hoặc **Tự động A→Z**) và **ẩn/hiện cột**, lưu trong profile theo từng kiểu group. Cột đã từng có vẫn hiện khi rỗng để kéo thẻ vào được; muốn bỏ thì ẩn.
